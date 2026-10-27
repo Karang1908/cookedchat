@@ -15,13 +15,22 @@ export interface CreatePayload {
 
 export type TypingPayload = { state: 'start' | 'tick' | 'stop'; len: number; cleared?: boolean };
 
-export type SimulateKind = 'typing_drama' | 'slow_reply' | 'burst' | 'dead_chat' | 'left_on_read' | 'simp' | 'argument' | 'derail' | 'tone';
+export type SimulateKind = 'typing_drama' | 'slow_reply' | 'burst' | 'dead_chat' | 'left_on_read' | 'simp' | 'argument' | 'derail' | 'tone' | 'claim' | 'hottake' | 'bet' | 'battle' | 'confession';
 
 export interface ClientToServerEvents {
   'room:create': (p: CreatePayload, ack: (a: Ack<{ code: string }>) => void) => void;
   'room:join': (p: JoinPayload, ack: (a: Ack<{ snapshot: RoomSnapshot }>) => void) => void;
   'chat:send': (p: { text: string; replyToId?: string }, ack?: (a: Ack<{ id: string }>) => void) => void;
   'chat:react': (p: { id: string; emoji: string }) => void;
+  'vote:cast': (p: { id: string; option: string }, ack?: (a: Ack) => void) => void;
+  'hottake:submit': (p: { text: string }, ack?: (a: Ack) => void) => void;
+  'bet:create': (p: { subjectId: string; minutes?: number }, ack?: (a: Ack) => void) => void;
+  'bet:place': (p: { id: string; side: 'yes' | 'no'; amount: number }, ack?: (a: Ack) => void) => void;
+  'battle:start': (p: { opponentId: string }, ack?: (a: Ack) => void) => void;
+  'battle:submit': (p: { id: string; text: string }, ack?: (a: Ack) => void) => void;
+  'confession:post': (p: { text: string }, ack?: (a: Ack) => void) => void;
+  'weather:get': (ack?: (a: Ack) => void) => void;
+  'replay:request': (ack?: (a: Ack) => void) => void;
   'room:vibe': (p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => void;
   'chat:edit': (p: { id: string; text: string }) => void;
   'chat:delete': (p: { id: string }) => void;

@@ -46,6 +46,11 @@ pnpm --filter @cooked/web typecheck
 - **Mobile layout: the room grid must be `grid-cols-[minmax(0,1fr)]`.** An `auto` track sizes to a child's nowrap min-content (e.g. a long reply banner) and pushes the Send button off-screen. Check `document.documentElement.scrollWidth === innerWidth` in phone tests.
 - **Message toolbar sits inside the row** (overlapping the bubble's top edge). Absolutely positioning it outside the bubble overflowed phones.
 - **`next start` keeps serving the old build from memory after a rebuild** (chunks 500). Kill the old `next-server` by PID before restarting. `pkill -f` kills your own shell; use `ps`+`kill`.
+- **Cards** (`ChatMessage.card`, kind `'card'`) are server-mutated and re-sent with `chat:update`. Open cards are found by scanning the last 60 messages each tick (`Games.tick`): votes/battles expire on real time (`closesAt`), markets settle on the room clock (so a warp settles them). All game actions return an `Ack`; the UI shows the reason.
+- **Confessions store no author** (not on the message, not in the room, not in Postgres). Keep it that way; a test mutates this. The "AI guess" is random with fake confidence.
+- **Market coins are conserved** (parimutuel; refund when nobody backed the winner). A test checks the total before/after.
+- **Votes settle early** only when every eligible member (online non-subject humans + all bots) has voted, otherwise at `voteWindowMs`. In demos, use "demo speed" in the admin Timings.
+- **Server TS `lib` is ES2023** (for `findLast`).
 - **Derived data**: `Member.stats` (class, creature, tier, rizz, power) is recomputed by `Room.recompute()` and flushed at most once per tick. Raw counters live in `Room.stats` and are persisted in `rooms.extras` (5s debounce); message extras (reactions, ohio, cards) in `messages.extra`. Migrations 0001+0002 must both be applied.
 
 ## Conventions

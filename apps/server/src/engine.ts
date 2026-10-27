@@ -9,6 +9,7 @@ import type {
 } from '@cooked/shared';
 import type { RoomBus } from './bus.js';
 import { analyze } from './features/behavior.js';
+import { Games } from './features/games.js';
 import { tickBehavior } from './features/ticks.js';
 import type { CommentContext } from './llm/prompt.js';
 import { Room } from './room.js';
@@ -21,6 +22,8 @@ import type { Hit } from './tables.js';
 export interface CommentWriter {
   /** one safe chat line, or null to fall back to a canned one */
   write(ctx: CommentContext): Promise<string | null>;
+  /** free-form text for judges, translators, captions, recaps; null = use the rule-based fallback */
+  generate?(p: { system: string; user: string }): Promise<string | null>;
 }
 
 const MAX_TEXT = 500;
@@ -47,6 +50,8 @@ export type SendResult = { ok: true; id: string; done: Promise<void> } | { ok: f
 
 export class Engine {
   private readonly log = new Logger('Engine');
+
+  readonly games: Games = new Games(this);
 
   constructor(readonly d: { bus: RoomBus; store: Store; writer: CommentWriter; rng?: () => number }) {}
 
@@ -175,6 +180,8 @@ export class Engine {
     let heat = COOKED_PER_MESSAGE + (capsRatio(msg.text) > 0.6 ? COOKED_CAPS_BONUS : 0) + (burst > 3 ? (burst - 3) * 1.5 : 0);
     for (const h of hits) heat += COOKED_PUSH[h.kind] ?? 0;
     this.heat(room, heat);
+
+    if (hits.some((h) => h.kind === 'cap') && room.settings.commentary) this.games.openRealVote(room, member, msg);
 
     const top = hits.filter((h) => PRIORITY[h.kind]).sort((a, b) => PRIORITY[b.kind]! - PRIORITY[a.kind]!)[0];
     // nobody awaits this promise (the sender already got their ack), so an escape here would crash the process
@@ -451,9 +458,12 @@ export class Engine {
     if (last && !room.deadChatFired && now - last.at >= t.deadChatMs) {
       room.deadChatFired = true;
       if (room.settings.commentary) {
-        const prompt = DEAD_CHAT_PROMPTS[Math.floor(this.rng() * DEAD_CHAT_PROMPTS.length)]!;
-        this.postAi(room, prompt, { trigger: 'dead_chat' });
-        this.playEffects(room, 'dead_chat');
+        if (this.rng() < 0.34) this.games.copypasta(room);
+        else {
+          const prompt = DEAD_CHAT_PROMPTS[Math.floor(this.rng() * DEAD_CHAT_PROMPTS.length)]!;
+          this.postAi(room, prompt, { trigger: 'dead_chat' });
+          this.playEffects(room, 'dead_chat');
+        }
       }
     }
 
@@ -493,6 +503,7 @@ export class Engine {
     }
 
     tickBehavior(this, room);
+    this.games.tick(room);
 
     if (room.extrasDirty && realNow - room.lastExtrasSaveAt > 5000) {
       room.extrasDirty = false;
@@ -505,8 +516,10 @@ export class Engine {
 
   setSettings(room: Room, patch: SettingsPatch): void {
     const wasJumpscare = room.settings.jumpscare;
+    const wasChaos = room.settings.chaos;
     room.settings = applySettingsPatch(room.settings, patch);
     if (room.settings.jumpscare && !wasJumpscare) room.lastJumpscareAt = Date.now();
+    if (room.settings.chaos && !wasChaos) room.lastChaosAt = Date.now();
     this.d.store.saveRoom(room);
     this.broadcastSettings(room);
   }
@@ -560,6 +573,10 @@ export class Engine {
     const member = (memberId && room.members.get(memberId)) || all[0];
     const other = all.find((m) => m.id !== member?.id)?.name ?? 'someone';
     const lore = room.lore[0];
+    if (kind === 'weather') { this.games.forecast(room); return Promise.resolve(); }
+    if (kind === 'replay') { this.games.replay(room); return Promise.resolve(); }
+    if (kind === 'chaos') { this.games.chaos(room); return Promise.resolve(); }
+    if (kind === 'copypasta') { this.games.copypasta(room); return Promise.resolve(); }
     this.playEffects(room, kind);
     return this.comment(room, {
       kind, member, text: kind === 'dry_reply' ? 'k' : lore?.text ?? '', fact: `admin forced a ${kind} moment`,
@@ -643,6 +660,12 @@ export class Engine {
         await say(actor.id, 'ok');
         await say(actor.id, 'ok.');
         return null;
+      case 'claim':
+      case 'hottake':
+      case 'bet':
+      case 'battle':
+      case 'confession':
+        return this.games.stage(room, kind, [actor, ...others]);
     }
   }
 }

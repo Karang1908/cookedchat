@@ -16,6 +16,15 @@ export interface RoomExtras {
   coins: [string, number][];
   lore: LoreItem[];
   lastLoreAt: number;
+  hotTakes: HotTake[];
+}
+
+export interface HotTake {
+  authorId: string;
+  text: string;
+  /** share of voters who disagreed, 0-100 */
+  diabolical: number;
+  at: number;
 }
 
 export interface LoreItem {
@@ -39,7 +48,13 @@ export class Room {
   readonly lastClass = new Map<string, RpgClass>();
   readonly mogged = new Set<string>();
   lore: LoreItem[] = [];
+  hotTakes: HotTake[] = [];
   lastLoreAt = 0; // room clock
+  lastVoteAt = 0; // real
+  lastForecastAt = 0;
+  lastReplayAt = 0;
+  readonly lastHotTakeAt = new Map<string, number>();
+  readonly lastConfessAt = new Map<string, number>();
   membersDirty = false;
   extrasDirty = false;
   lastExtrasSaveAt = 0;
@@ -113,6 +128,7 @@ export class Room {
       coins: [...this.members.values()].map((m) => [m.id, m.coins]),
       lore: this.lore,
       lastLoreAt: this.lastLoreAt,
+      hotTakes: this.hotTakes,
     };
   }
 

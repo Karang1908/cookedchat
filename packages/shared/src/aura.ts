@@ -11,6 +11,7 @@ export const AURA_RULES: Record<Exclude<AuraReason, 'manual'>, { delta: number; 
   mog: { delta: 1000, label: 'Mogged someone' },
   ohio: { delta: -500, label: 'Ohio level 85%+' },
   cap: { delta: -200, label: 'Caught in 4K cap' },
+  claim_real: { delta: 100, label: 'Claim certified real' },
   hot_take: { delta: 300, label: 'Diabolical hot take' },
   big_play: { delta: 10000, label: 'Big play' },
 };

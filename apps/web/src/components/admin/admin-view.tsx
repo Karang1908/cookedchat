@@ -11,7 +11,7 @@ import { AuraPanel } from '../room/aura-panel';
 
 const KEY = 'cooked.adminKey';
 const WARPS: [string, number][] = [['-1h', -3_600_000], ['+5m', 300_000], ['+30m', 1_800_000], ['+1h', 3_600_000], ['+4h', 14_400_000], ['+12h', 43_200_000]];
-const SIMS: [SimulateKind, string][] = [['typing_drama', '⌨️ typing drama'], ['slow_reply', '🕳️ slow reply (+3h)'], ['burst', '💬 message burst'], ['dead_chat', '🦗 dead chat'], ['left_on_read', '👁️ left on read'], ['simp', '💘 simp radar'], ['argument', '🔥 argument (mewing)'], ['derail', '🥣 topic derail'], ['tone', '🥶 tone shift (ok → ok.)']];
+const SIMS: [SimulateKind, string][] = [['typing_drama', '⌨️ typing drama'], ['slow_reply', '🕳️ slow reply (+3h)'], ['burst', '💬 message burst'], ['dead_chat', '🦗 dead chat'], ['left_on_read', '👁️ left on read'], ['simp', '💘 simp radar'], ['argument', '🔥 argument (mewing)'], ['derail', '🥣 topic derail'], ['tone', '🥶 tone shift (ok → ok.)'], ['claim', '🧢 big claim (is this real?)'], ['hottake', '🔥 hot take'], ['bet', '💰 prediction market'], ['battle', '⚔️ rizz battle (bots)'], ['confession', '🤫 confession']];
 const FORCES: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta'];
 const BOT_LINES = ['k', '67', "wait I'll reply later", 'pizza tonight?', 'lol', 'WHAT IS HAPPENING', 'ok.', 'fine'];
 const TIMING_FIELDS: { key: keyof RoomTimings; label: string; unit: 's' | 'n' }[] = [
@@ -20,8 +20,12 @@ const TIMING_FIELDS: { key: keyof RoomTimings; label: string; unit: 's' | 'n' }[
   { key: 'deadChatMs', label: 'dead chat after', unit: 's' }, { key: 'leftOnReadMs', label: 'left on read after', unit: 's' },
   { key: 'burstCount', label: 'burst size (msgs)', unit: 'n' }, { key: 'burstWindowMs', label: 'burst window', unit: 's' },
   { key: 'commentCooldownMs', label: 'AI cooldown', unit: 's' },
+  { key: 'voteWindowMs', label: 'votes & battles stay open', unit: 's' },
+  { key: 'missingMs', label: 'missing poster after', unit: 's' },
+  { key: 'owlMs', label: 'owl after (post 9pm)', unit: 's' },
+  { key: 'loreGapMs', label: 'lore callback gap', unit: 's' },
 ];
-const DEMO_TIMINGS: Partial<RoomTimings> = { typingDramaMs: 8000, typedDeletedMs: 4000, deadChatMs: 45_000, leftOnReadMs: 60_000, commentCooldownMs: 4000 };
+const DEMO_TIMINGS: Partial<RoomTimings> = { typingDramaMs: 8000, typedDeletedMs: 4000, deadChatMs: 45_000, leftOnReadMs: 60_000, commentCooldownMs: 4000, voteWindowMs: 10_000, missingMs: 120_000, owlMs: 120_000, loreGapMs: 60_000 };
 
 export function AdminView({ code }: { code: string }) {
   const [key, setKey] = useState<string | null>(null);

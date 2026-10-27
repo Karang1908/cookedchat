@@ -101,7 +101,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
         )}
         {messages.map((m, i) => {
           const prev = messages[i - 1];
-          if (m.kind === 'card') return <CardView key={m.id} m={m} meId={meId} />;
+          if (m.kind === 'card') return <CardView key={m.id} m={m} />;
           if (m.kind === 'ai') return <AiCard key={m.id} m={m} latest={m.id === lastAiId} onReact={onReact} meId={meId} />;
           const author = m.authorId ? byId.get(m.authorId) : undefined;
           const mine = m.authorId === meId;

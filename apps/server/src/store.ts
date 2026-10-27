@@ -104,6 +104,7 @@ export class PgStore implements Store {
       for (const [k, v] of extras.latency ?? []) room.latency.set(k, v);
       room.lore = extras.lore ?? [];
       room.lastLoreAt = extras.lastLoreAt ?? 0;
+      room.hotTakes = extras.hotTakes ?? [];
       const coins = new Map(extras.coins ?? []);
       for (const m of (await this.pool.query('select id, name, avatar, is_bot from members where room_code=$1', [code])).rows) {
         const member = room.addMember(m.id, m.name, m.avatar as AvatarType, m.is_bot);

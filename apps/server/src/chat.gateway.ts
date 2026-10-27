@@ -21,7 +21,7 @@ interface SocketData {
 }
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
-const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone'];
+const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone', 'claim', 'hottake', 'bet', 'battle', 'confession'];
 const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta'];
 
 const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -107,6 +107,62 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   react(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; emoji: string }) {
     const c = this.ctx(socket);
     if (c) this.engine.reactTo(c.room, c.memberId, str(p?.id, 64), str(p?.emoji, 16));
+  }
+
+  // ------------------------------------------------------------- games (every handler returns an Ack with the reason on failure)
+
+  @SubscribeMessage('vote:cast')
+  vote(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; option: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? c.room && this.engine.games.castVote(c.room, c.memberId, str(p?.id, 64), str(p?.option, 32)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('hottake:submit')
+  hotTake(@ConnectedSocket() socket: Sock, @MessageBody() p: { text: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.submitHotTake(c.room, c.memberId, str(p?.text, 300)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('bet:create')
+  betCreate(@ConnectedSocket() socket: Sock, @MessageBody() p: { subjectId: string; minutes?: number }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.createBet(c.room, c.memberId, str(p?.subjectId, 64), Number(p?.minutes)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('bet:place')
+  betPlace(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; side: 'yes' | 'no'; amount: number }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.placeBet(c.room, c.memberId, str(p?.id, 64), p?.side, Number(p?.amount)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('battle:start')
+  battleStart(@ConnectedSocket() socket: Sock, @MessageBody() p: { opponentId: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.startBattle(c.room, c.memberId, str(p?.opponentId, 64)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('battle:submit')
+  battleSubmit(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; text: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.submitBattle(c.room, c.memberId, str(p?.id, 64), str(p?.text, 300)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('confession:post')
+  confess(@ConnectedSocket() socket: Sock, @MessageBody() p: { text: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.postConfession(c.room, c.memberId, str(p?.text, 400)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('weather:get')
+  weather(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.forecast(c.room) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('replay:request')
+  replay(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.games.replay(c.room) : { ok: false, error: 'join a room first' };
   }
 
   @SubscribeMessage('room:vibe')

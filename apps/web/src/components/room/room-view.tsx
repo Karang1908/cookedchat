@@ -9,6 +9,7 @@ import type { BrainrotLevel, ChatMessage, PersonaId, RoastIntensity, SoundName }
 import { loadIdentity, saveIdentity } from '@/lib/identity';
 import type { Identity } from '@/lib/identity';
 import { setMuted, unlockAudio } from '@/lib/sounds';
+import { RoomActionsProvider, useBuildActions } from '@/lib/room-actions';
 import { useLiveRoom } from '@/lib/use-live-room';
 import { CookedMeter } from '../cooked-meter';
 import { FxLayer } from '../fx-layer';
@@ -16,6 +17,7 @@ import { QrDialog } from '../qr-dialog';
 import { AuraPanel } from './aura-panel';
 import { Composer } from './composer';
 import { Gameplay } from './gameplay';
+import { GamesPanel } from './games-panel';
 import { JoinGate } from './join-gate';
 import { MessageList } from './message-list';
 import { ProfileDialog } from './profile-dialog';
@@ -61,6 +63,7 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   const hour = new Date(clock + state.clockOffsetMs + state.tzOffsetMin * 60_000).getUTCHours();
   const midnight = hour >= 1 && hour < 5;
 
+  const actions = useBuildActions(socket, state.members, state.meId);
   const stage = fryStage(state.cooked);
   const live = state.status === 'ready';
 
@@ -118,7 +121,7 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   ];
 
   return (
-    <>
+    <RoomActionsProvider value={actions}>
       <div id="stage" data-fry={Math.min(3, stage)} className="flex h-dvh flex-col lg:block">
         <div className="mx-auto grid min-h-0 w-full max-w-[1500px] flex-1 grid-cols-[minmax(0,1fr)] lg:h-full lg:grid-cols-[300px_minmax(0,1fr)_340px]">
           <aside className={clsx('min-h-0 flex-col border-white/5 p-4 lg:flex lg:border-r', tab === 'room' ? 'flex' : 'hidden')}>
@@ -148,6 +151,7 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
               <AuraPanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} />
             </div>
             <div className={clsx('shrink-0 flex-col gap-4 lg:flex', tab === 'fun' ? 'flex' : 'hidden')}>
+              <GamesPanel />
               <Soundboard onPlay={onSound} />
               <Gameplay />
             </div>
@@ -168,7 +172,7 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
       <QrDialog code={code} open={qrOpen} onClose={() => setQrOpen(false)} />
       <ProfileDialog member={state.members.find((m) => m.id === profileId) ?? null} onClose={() => setProfileId(null)} />
       {midnight && <div className="pointer-events-none fixed inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(30_10_80/0.45))]" aria-hidden />}
-    </>
+    </RoomActionsProvider>
   );
 }
 

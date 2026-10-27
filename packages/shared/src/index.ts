@@ -12,3 +12,4 @@ export * from './stats.js';
 export * from './content.js';
 export * from './translate.js';
 export * from './format.js';
+export * from './weather.js';

@@ -43,7 +43,7 @@ export type TriggerKind =
   | 'cooked_max'
   | 'manual';
 
-export type AuraReason = 'ohio' | 'cap' | 'hot_take' | 'fanum_tax' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
+export type AuraReason = 'ohio' | 'cap' | 'claim_real' | 'hot_take' | 'fanum_tax' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
 
 export type FxKind = 'shake' | 'flash' | 'glitch' | 'confetti' | 'emojiRain' | 'zoom' | 'deepfry' | 'jumpscare' | 'invert' | 'spin' | 'meltdown';
 export const FX_KINDS: readonly FxKind[] = ['shake', 'flash', 'glitch', 'confetti', 'emojiRain', 'zoom', 'deepfry', 'jumpscare', 'invert', 'spin', 'meltdown'];

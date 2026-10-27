@@ -189,16 +189,16 @@ test('meltdown fires once at 100%, again only after the room cools', async () =>
   assert.equal(s.bus.of('fx').filter(([f]) => f.kind === 'meltdown').length, 2);
 });
 
-test('tick: dead chat prompt after the configured silence, once', async () => {
+test('tick: dead chat revival (prompt or copypasta) after the configured silence, once', async () => {
   const s = setup();
   const a = s.add('a', 'Aman');
   await say(s, a, 'hello there');
-  s.bus.clear();
+  const revivals = () => s.room.messages.filter((m) => m.trigger === 'dead_chat' || m.trigger === 'copypasta').length;
   s.engine.warp(s.room, 6 * 60_000);
   s.engine.tick(s.room);
-  assert.equal(s.bus.ai().length, 1);
+  assert.equal(revivals(), 1);
   s.engine.warp(s.room, 60_000);
-  assert.equal(s.bus.ai().length, 1);
+  assert.equal(revivals(), 1);
 });
 
 test('tick: left on read fires for a viewer who saw it and stayed silent', async () => {

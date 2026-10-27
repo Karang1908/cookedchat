@@ -33,6 +33,12 @@ export class FakeWriter implements CommentWriter {
     this.calls.push(ctx);
     return this.reply;
   }
+  generated: { system: string; user: string }[] = [];
+  generateReply: string | null = null;
+  async generate(p: { system: string; user: string }) {
+    this.generated.push(p);
+    return this.generateReply;
+  }
 }
 
 export function setup() {

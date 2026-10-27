@@ -9,7 +9,12 @@
     "rootDir": "src",
     "strict": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": [
+      "ES2023"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

@@ -86,3 +86,16 @@ test('cannedLine fills new placeholders and keeps unknown ones visible', () => {
   assert.match(cannedLine('scouter', { name: 'X' }, () => 0), /\{power\}/);
   for (const [k, v] of Object.entries(CANNED)) assert.ok(v.length > 0, k);
 });
+
+import { buildForecast } from './index.js';
+test('forecast: ranks real chat signals and writes a headline', () => {
+  const dry = buildForecast({ messages: 10, dry: 8, lol: 1, food: 0, ohioAvg: 5, ghosts: 0, cooked: 0, quietMs: 0, hour: 20 });
+  assert.match(dry.headline, /chance of passive-aggression tonight/);
+  assert.equal(dry.forecast.length, 3);
+  assert.ok(dry.forecast[0]!.pct >= dry.forecast[1]!.pct && dry.forecast.every((f) => f.pct >= 3 && f.pct <= 97));
+  assert.match(dry.headline, /by 11pm/);
+  const chaos = buildForecast({ messages: 10, dry: 0, lol: 0, food: 0, ohioAvg: 80, ghosts: 0, cooked: 90, quietMs: 0, hour: 22 });
+  assert.match(chaos.headline, /unhinged chaos/);
+  assert.match(chaos.headline, /by 1am/);
+  assert.match(buildForecast({ messages: 0, dry: 0, lol: 0, food: 0, ohioAvg: 0, ghosts: 0, cooked: 0, quietMs: 0, hour: 1 }).headline, /clear skies/);
+});

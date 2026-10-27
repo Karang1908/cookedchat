@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { Config } from '../config.js';
+import { isOffLimits } from '@cooked/shared';
 import type { CommentContext } from './prompt.js';
 import { buildMessages, sanitizeLine } from './prompt.js';
 import { ollamaProvider, openAiCompatProvider } from './providers.js';
@@ -29,5 +30,12 @@ export class LlmCommentator implements CommentWriter {
   async write(ctx: CommentContext): Promise<string | null> {
     const r = await this.router.complete(buildMessages(ctx));
     return r ? sanitizeLine(r.text) : null;
+  }
+
+  /** free-form generation for judges, translators, captions, recaps. Anything touching off-limits topics is dropped. */
+  async generate(p: { system: string; user: string }): Promise<string | null> {
+    const r = await this.router.complete([{ role: 'system', content: p.system }, { role: 'user', content: p.user }]);
+    const text = r?.text.trim();
+    return text && !isOffLimits(text) ? text : null;
   }
 }
