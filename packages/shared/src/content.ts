@@ -81,3 +81,13 @@ export const PLAIN_PREFIX = ['So what you are saying is: ', 'Ah. In my day we sa
 
 export const MEME_EMOJI = ['🗿', '💀', '😭', '🥀', '🫡', '👁️', '🧢'];
 export const MEME_TOP = ['WHEN {name}', 'NOBODY: {name}', 'POV: {name}', 'ME WATCHING {name}', '{name} AT 3AM'];
+
+/** a rival commentator's canned comeback when no LLM answers (keyed by the RIVAL's persona) */
+export const RIVAL_RETORTS: Record<'gremlin' | 'sports' | 'nature' | 'reality' | 'mom' | 'boomer', string[]> = {
+  gremlin: ['bro the other one is so cooked 💀', 'nah that take is mid, no cap 🗿', 'ratio + you fell off 🥀'],
+  sports: ['AND THE CROWD GOES ABSOLUTELY WILD', 'WHAT A BOLD CALL FROM THE BOOTH', 'THAT IS A FOUL AND I WILL NOT BE TAKING QUESTIONS'],
+  nature: ['Fascinating. The other commentator continues to make noise.', 'And so the rivalry continues, as it has for millennia.', 'Observe: the loud one feels threatened.'],
+  reality: ["I'm not here to make friends with the other commentator.", 'This is not what I signed up for.', 'Can we get a confessional about that, please?'],
+  mom: ["Oh sure. Talk over me. It's fine.", "I'm not mad. I'm just disappointed in everyone, including you.", "No, no. Don't mind me. I'll just sit here."],
+  boomer: ['Is that a wifi thing?', 'In my day we just called people.', 'Back in my day "cooked" meant dinner.'],
+};

@@ -51,6 +51,10 @@ pnpm --filter @cooked/web typecheck
 - **Market coins are conserved** (parimutuel; refund when nobody backed the winner). A test checks the total before/after.
 - **Votes settle early** only when every eligible member (online non-subject humans + all bots) has voted, otherwise at `voteWindowMs`. In demos, use "demo speed" in the admin Timings.
 - **Server TS `lib` is ES2023** (for `findLast`).
+- **Popovers must out-stack later rows.** Every chat row is its own stacking context (`.pop-in`), so a menu opening *downward* is painted over by the next message and becomes unclickable. The row owning an open menu gets `relative z-30`, and menus flip below the message only when there is no room above (`menuDir`). If Playwright hangs on a click, probe `document.elementFromPoint` at the element's centre: it is usually telling you the truth about what covers it.
+- **Lore is privacy-sensitive**: editing or deleting a message removes its lore (`Memory.forget`) so deleted text never resurfaces as an inside joke.
+- **LLM-backed helpers (`writer.generate`)**: translators, memes, recap cliffhanger and the battle judge all fall back to rule-based output, and any model output touching `OFF_LIMITS` is dropped. Rival commentators (`settings.rival`) double the LLM calls per roast; instant triggers use canned retorts (`RIVAL_RETORTS`).
+- **Share images are drawn client-side** on a canvas (`lib/share-card.ts`, 1080px PNG) and shared with `navigator.share` or downloaded. Fonts must be loaded first (`ensureFonts`).
 - **Derived data**: `Member.stats` (class, creature, tier, rizz, power) is recomputed by `Room.recompute()` and flushed at most once per tick. Raw counters live in `Room.stats` and are persisted in `rooms.extras` (5s debounce); message extras (reactions, ohio, cards) in `messages.extra`. Migrations 0001+0002 must both be applied.
 
 ## Conventions

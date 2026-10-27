@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import {
-  AURA_RULES, AVATARS, CLASSES, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
+  AURA_RULES, AVATARS, CLASSES, PERSONAS, RIVAL_RETORTS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
   cannedLine, capsRatio, decayCooked, findFood, fmtDuration, is67, isDry, isReplyLater, ohioScore, pushCooked, shouldMeltdown,
 } from '@cooked/shared';
 import type {
@@ -10,6 +10,7 @@ import type {
 import type { RoomBus } from './bus.js';
 import { analyze } from './features/behavior.js';
 import { Games } from './features/games.js';
+import { Memory } from './features/memory.js';
 import { tickBehavior } from './features/ticks.js';
 import type { CommentContext } from './llm/prompt.js';
 import { Room } from './room.js';
@@ -52,6 +53,7 @@ export class Engine {
   private readonly log = new Logger('Engine');
 
   readonly games: Games = new Games(this);
+  readonly memory: Memory = new Memory(this);
 
   constructor(readonly d: { bus: RoomBus; store: Store; writer: CommentWriter; rng?: () => number }) {}
 
@@ -182,6 +184,7 @@ export class Engine {
     this.heat(room, heat);
 
     if (hits.some((h) => h.kind === 'cap') && room.settings.commentary) this.games.openRealVote(room, member, msg);
+    this.memory.maybeLore(room);
 
     const top = hits.filter((h) => PRIORITY[h.kind]).sort((a, b) => PRIORITY[b.kind]! - PRIORITY[a.kind]!)[0];
     // nobody awaits this promise (the sender already got their ack), so an escape here would crash the process
@@ -199,6 +202,7 @@ export class Engine {
     if (!text) return 'empty message';
     if (text === msg.text) return null;
     room.originals.set(msg.id, msg.text);
+    this.memory.forget(room, memberId, msg.text);
     this.d.store.saveEdit(msg.id, msg.text, room.now());
     msg.text = text;
     msg.edited = true;
@@ -214,6 +218,7 @@ export class Engine {
     const msg = room.messages.find((m) => m.id === id);
     if (!msg || msg.authorId !== memberId || msg.deleted || msg.kind !== 'user') return 'cannot delete that';
     room.originals.set(msg.id, msg.text);
+    this.memory.forget(room, memberId, msg.text);
     this.d.store.saveEdit(msg.id, msg.text, room.now());
     msg.deleted = true;
     msg.text = '';
@@ -389,6 +394,7 @@ export class Engine {
     line ??= cannedLine(c.kind, { name, text: c.text, ...c.vars }, () => this.rng());
 
     this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind });
+    if (settings.rival && settings.rival !== settings.persona) await this.rivalReply(room, c, name, line, INSTANT.has(c.kind));
     const emoji = REACTION[c.kind];
     const target = c.targetId ? room.messages.find((m) => m.id === c.targetId) : undefined;
     if (emoji && target && !target.aiReactions.includes(emoji)) {
@@ -396,6 +402,27 @@ export class Engine {
       this.update(room, target);
     }
     if (c.kind !== 'cooked_max') this.playEffects(room, c.kind);
+  }
+
+  /** the second persona answers the first. LLM when it can, canned retort otherwise. */
+  private async rivalReply(room: Room, c: CommentRequest, name: string, firstLine: string, instant: boolean): Promise<void> {
+    const rival = room.settings.rival!;
+    let line: string | null = null;
+    if (!instant) {
+      this.d.bus.emit(room.code, 'ai:thinking', true);
+      try {
+        line = await this.d.writer.write({
+          kind: c.kind, name, text: c.text, fact: c.fact, settings: { ...room.settings, persona: rival },
+          recent: room.userMessages().slice(-4).map((m) => ({ name: room.members.get(m.authorId!)?.name ?? '?', text: m.text })),
+          midnight: this.isMidnight(room), rivalOf: { label: PERSONAS[room.settings.persona].label, line: firstLine },
+        });
+      } finally {
+        this.d.bus.emit(room.code, 'ai:thinking', false);
+      }
+    }
+    const pool = RIVAL_RETORTS[rival];
+    line ??= pool[Math.floor(this.rng() * pool.length)]!;
+    this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind, persona: rival });
   }
 
   postAi(room: Room, text: string, o: { replyTo?: string; trigger?: TriggerKind; persona?: PersonaId } = {}): ChatMessage {
@@ -577,6 +604,10 @@ export class Engine {
     if (kind === 'replay') { this.games.replay(room); return Promise.resolve(); }
     if (kind === 'chaos') { this.games.chaos(room); return Promise.resolve(); }
     if (kind === 'copypasta') { this.games.copypasta(room); return Promise.resolve(); }
+    if (kind === 'recap') return this.memory.recap(room).then(() => {});
+    if (kind === 'awards') { this.memory.awards(room); return Promise.resolve(); }
+    if (kind === 'wrapped') { if (member) this.memory.wrapped(room, member.id); return Promise.resolve(); }
+    if (kind === 'meme') { const last = room.userMessages().at(-1); return last && member ? this.memory.makeMeme(room, member.id, last.id).then(() => {}) : Promise.resolve(); }
     this.playEffects(room, kind);
     return this.comment(room, {
       kind, member, text: kind === 'dry_reply' ? 'k' : lore?.text ?? '', fact: `admin forced a ${kind} moment`,

@@ -4,10 +4,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { BorderBeam } from 'border-beam';
 import { ThinkingOrb } from 'thinking-orbs';
-import { ArrowDown, Check, CornerUpLeft, Pencil, SmilePlus, Trash2, X } from 'lucide-react';
-import { PERSONAS } from '@cooked/shared';
+import { ArrowDown, Check, CornerUpLeft, ImagePlus, Languages, Pencil, SmilePlus, Trash2, X } from 'lucide-react';
+import { PERSONAS, isDry } from '@cooked/shared';
 import type { ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { clockTime } from '@/lib/format';
+import { useRoomActions } from '@/lib/room-actions';
 import { Avatar } from '../avatar';
 import { CardView } from './card-view';
 
@@ -45,6 +46,28 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
   const [picker, setPicker] = useState<string | null>(null);
   /** tapped message: shows its toolbar on touch screens, where there is no hover */
   const [selected, setSelected] = useState<string | null>(null);
+  const actions = useRoomActions();
+  const [tmenu, setTmenu] = useState<string | null>(null);
+  /** menus open above the message, or below it when the message is too close to the top of the log to fit them */
+  const [menuDir, setMenuDir] = useState<'up' | 'down'>('up');
+  const dirFor = (el: HTMLElement, need: number): 'up' | 'down' => {
+    const sc = scroller.current;
+    return !sc || el.getBoundingClientRect().top - sc.getBoundingClientRect().top >= need ? 'up' : 'down';
+  };
+  const [translations, setTranslations] = useState<Record<string, { mode: string; text: string; via?: string; error?: string }>>({});
+  const [flash, setFlash] = useState<{ id: string; text: string } | null>(null);
+  const translate = async (id: string, mode: 'brainrot' | 'plain' | 'dry') => {
+    setTmenu(null);
+    const r = await actions.translate(id, mode);
+    setTranslations((t) => ({ ...t, [id]: 'error' in r ? { mode, text: '', error: r.error } : { mode, ...r } }));
+  };
+  const meme = async (id: string) => {
+    const err = await actions.makeMeme(id);
+    if (err) {
+      setFlash({ id, text: err });
+      setTimeout(() => setFlash((f) => (f?.id === id ? null : f)), 3000);
+    }
+  };
   const byId = new Map(members.map((m) => [m.id, m]));
   const msgById = new Map(messages.map((m) => [m.id, m]));
   const lastAiId = [...messages].reverse().find((m) => m.kind === 'ai')?.id;
@@ -88,7 +111,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
           if (pinned.current) setUnread(0);
         }}
-        onClick={() => { setPicker(null); setSelected(null); }}
+        onClick={() => { setPicker(null); setTmenu(null); setSelected(null); }}
         className="scroll-thin absolute inset-0 space-y-1 overflow-y-auto px-3 py-4 sm:px-5"
         role="log"
         aria-live="polite"
@@ -109,7 +132,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
           const isEditing = editing?.id === m.id;
           const quoted = m.replyToId ? msgById.get(m.replyToId) : undefined;
           return (
-            <div key={m.id} data-mid={!mine && m.kind === 'user' ? m.id : undefined} className={clsx('group pop-in flex gap-2', mine && 'flex-row-reverse', header && i > 0 && 'pt-2')}>
+            <div key={m.id} data-mid={!mine && m.kind === 'user' ? m.id : undefined} className={clsx('group pop-in flex gap-2', mine && 'flex-row-reverse', header && i > 0 && 'pt-2', (tmenu === m.id || picker === m.id) && 'relative z-30')}>
               {!mine && (header && author ? <button onClick={() => onProfile(author.id)} aria-label={`${author.name} profile`}><Avatar type={author.avatar} size={36} /></button> : <div className="w-9 shrink-0" />)}
               <div className={clsx('flex min-w-0 max-w-[80%] flex-col', mine ? 'items-end' : 'items-start')}>
                 {header && !mine && (
@@ -146,13 +169,22 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                   {!m.deleted && !isEditing && (
                     <div className={clsx('absolute -top-4 z-10 flex gap-0.5 rounded-full border border-white/10 bg-ink-800 p-0.5 shadow-lg transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
                       <IconBtn label="Reply" onClick={() => onReply(m)}><CornerUpLeft size={13} /></IconBtn>
-                      <IconBtn label="React" onClick={(e) => { e.stopPropagation(); setPicker(picker === m.id ? null : m.id); }}><SmilePlus size={13} /></IconBtn>
+                      <IconBtn label="React" onClick={(e) => { e.stopPropagation(); setTmenu(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 70)); setPicker(picker === m.id ? null : m.id); }}><SmilePlus size={13} /></IconBtn>
+                      <IconBtn label="Translate" onClick={(e) => { e.stopPropagation(); setPicker(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 140)); setTmenu(tmenu === m.id ? null : m.id); }}><Languages size={13} /></IconBtn>
+                      <IconBtn label="Make a meme" onClick={() => void meme(m.id)}><ImagePlus size={13} /></IconBtn>
                       {mine && <IconBtn label="Edit message" onClick={() => setEditing({ id: m.id, draft: m.text })}><Pencil size={13} /></IconBtn>}
                       {mine && <IconBtn label="Delete message" onClick={() => onDelete(m.id)} danger><Trash2 size={13} /></IconBtn>}
                     </div>
                   )}
+                  {tmenu === m.id && (
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max flex-col whitespace-nowrap rounded-xl border border-white/10 bg-ink-800 p-1 text-xs font-semibold shadow-xl', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-[7.5rem]' : 'top-full mt-1')} role="menu" aria-label="Translate">
+                      <button role="menuitem" onClick={() => void translate(m.id, 'brainrot')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">🧠 to brainrot</button>
+                      <button role="menuitem" onClick={() => void translate(m.id, 'plain')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">👴 to plain English</button>
+                      {isDry(m.text) && <button role="menuitem" onClick={() => void translate(m.id, 'dry')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">🔍 what they really meant</button>}
+                    </div>
+                  )}
                   {picker === m.id && (
-                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex gap-0.5 rounded-full border border-white/10 bg-ink-800 p-1 shadow-xl', mine ? 'right-0' : 'left-0', '-top-12')} role="menu" aria-label="Pick a reaction">
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max gap-0.5 rounded-full border border-white/10 bg-ink-800 p-1 shadow-xl', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-12' : 'top-full mt-1')} role="menu" aria-label="Pick a reaction">
                       {PICKER.map((e) => (
                         <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-full px-1.5 py-1 text-lg transition hover:scale-125 hover:bg-white/10">{e}</button>
                       ))}
@@ -160,6 +192,14 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                   )}
                 </div>
                 <Reactions m={m} meId={meId} onReact={onReact} />
+                {translations[m.id] && (
+                  <div className="pop-in mt-1 flex max-w-full items-start gap-1.5 rounded-lg border border-dashed border-white/15 bg-ink-850/80 px-2.5 py-1.5 text-xs" role="note">
+                    <span aria-hidden>{{ brainrot: '🧠', plain: '👴', dry: '🔍' }[translations[m.id]!.mode]}</span>
+                    {translations[m.id]!.error ? <span className="text-ember">{translations[m.id]!.error}</span> : <span className="break-words text-text/90"><i className="text-mute">{translations[m.id]!.mode === 'dry' ? 'what they really meant: ' : `${translations[m.id]!.mode}: `}</i>{translations[m.id]!.text}</span>}
+                    <button onClick={() => setTranslations(({ [m.id]: _gone, ...rest }) => rest)} aria-label="Dismiss translation" className="ml-1 text-mute hover:text-white"><X size={12} /></button>
+                  </div>
+                )}
+                {flash?.id === m.id && <span role="status" className="mt-1 rounded-lg bg-ember/15 px-2 py-0.5 text-xs text-ember">{flash.text}</span>}
                 <div className="mt-0.5 flex items-center gap-2 px-1 text-[10px] text-mute/80">
                   <span>{clockTime(m.at)}</span>
                   {(m.ohio ?? 0) >= 50 && !m.deleted && <span className={clsx('rounded px-1 font-mono', (m.ohio ?? 0) >= 85 ? 'bg-ember/20 text-ember' : 'bg-sun/15 text-sun')} title="Ohio level">🫩 ohio {m.ohio}%</span>}

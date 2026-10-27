@@ -11,7 +11,7 @@ export interface Hit {
 export const PRIORITY: Partial<Record<TriggerKind, number>> = {
   six_seven: 10, cooked_max: 10, mog: 9, tung_tung: 9, betrayal: 8, typing_drama: 8, slow_reply: 8, reply_later: 8, vote_result: 8, battle_result: 8, bet_result: 8,
   left_on_read: 7, ohio_high: 7, mewing: 7, owl: 7, missing: 7, burst: 6, typed_deleted: 6, cap: 6, tone_shift: 6, simp_radar: 6, scouter: 6,
-  edited: 5, deleted: 5, fanum: 5, derail: 6, class_change: 5, chaos: 5, dead_chat: 4, lore: 4, weather: 4, replay: 4, copypasta: 4, dry_reply: 3,
+  edited: 5, deleted: 5, fanum: 5, derail: 6, class_change: 5, chaos: 5, dead_chat: 4, lore: 7, weather: 4, replay: 4, copypasta: 4, dry_reply: 3,
 };
 
 /** cheap, funny, and must never wait on an LLM (also keeps the free-tier token budget for the moments that need wit) */

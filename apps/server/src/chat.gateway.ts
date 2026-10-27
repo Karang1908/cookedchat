@@ -22,7 +22,7 @@ interface SocketData {
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
 const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone', 'claim', 'hottake', 'bet', 'battle', 'confession'];
-const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta'];
+const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme'];
 
 const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -163,6 +163,36 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   replay(@ConnectedSocket() socket: Sock): Ack {
     const c = this.ctx(socket);
     return c ? this.engine.games.replay(c.room) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('translate:request')
+  async translate(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; mode: 'brainrot' | 'plain' | 'dry' }): Promise<Ack<{ text: string; via: 'ai' | 'rules' }>> {
+    const c = this.ctx(socket);
+    return c ? this.engine.memory.translate(c.room, c.memberId, str(p?.id, 64), p?.mode) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('meme:make')
+  async meme(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string }): Promise<Ack> {
+    const c = this.ctx(socket);
+    return c ? this.engine.memory.makeMeme(c.room, c.memberId, str(p?.id, 64)) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('recap:generate')
+  async recap(@ConnectedSocket() socket: Sock): Promise<Ack> {
+    const c = this.ctx(socket);
+    return c ? this.engine.memory.recap(c.room) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('awards:get')
+  awards(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.memory.awards(c.room) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('wrapped:get')
+  wrapped(@ConnectedSocket() socket: Sock, @MessageBody() p: { memberId?: string }): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.memory.wrapped(c.room, c.memberId, p?.memberId ? str(p.memberId, 64) : undefined) : { ok: false, error: 'join a room first' };
   }
 
   @SubscribeMessage('room:vibe')

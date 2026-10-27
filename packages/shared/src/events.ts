@@ -30,6 +30,11 @@ export interface ClientToServerEvents {
   'battle:submit': (p: { id: string; text: string }, ack?: (a: Ack) => void) => void;
   'confession:post': (p: { text: string }, ack?: (a: Ack) => void) => void;
   'weather:get': (ack?: (a: Ack) => void) => void;
+  'translate:request': (p: { id: string; mode: 'brainrot' | 'plain' | 'dry' }, ack: (a: Ack<{ text: string; via: 'ai' | 'rules' }>) => void) => void;
+  'meme:make': (p: { id: string }, ack?: (a: Ack) => void) => void;
+  'recap:generate': (ack?: (a: Ack) => void) => void;
+  'awards:get': (ack?: (a: Ack) => void) => void;
+  'wrapped:get': (p: { memberId?: string }, ack?: (a: Ack) => void) => void;
   'replay:request': (ack?: (a: Ack) => void) => void;
   'room:vibe': (p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => void;
   'chat:edit': (p: { id: string; text: string }) => void;

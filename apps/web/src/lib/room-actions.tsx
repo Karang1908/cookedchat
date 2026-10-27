@@ -19,6 +19,11 @@ export interface RoomActions {
   confess(text: string): R;
   forecast(): R;
   replay(): R;
+  recap(): R;
+  awards(): R;
+  wrapped(memberId?: string): R;
+  makeMeme(id: string): R;
+  translate(id: string, mode: 'brainrot' | 'plain' | 'dry'): Promise<{ text: string; via: 'ai' | 'rules' } | { error: string }>;
 }
 
 const Ctx = createContext<RoomActions | null>(null);
@@ -59,6 +64,20 @@ export function useBuildActions(socket: React.RefObject<CookedSocket | null>, me
       confess: (text) => call(s(), (k, ack) => k.emit('confession:post', { text }, ack)),
       forecast: () => call(s(), (k, ack) => k.emit('weather:get', ack)),
       replay: () => call(s(), (k, ack) => k.emit('replay:request', ack)),
+      recap: () => call(s(), (k, ack) => k.emit('recap:generate', ack)),
+      awards: () => call(s(), (k, ack) => k.emit('awards:get', ack)),
+      wrapped: (memberId) => call(s(), (k, ack) => k.emit('wrapped:get', { memberId }, ack)),
+      makeMeme: (id) => call(s(), (k, ack) => k.emit('meme:make', { id }, ack)),
+      translate: (id, mode) =>
+        new Promise((resolve) => {
+          const k = s();
+          if (!k?.connected) return resolve({ error: 'offline, reconnecting…' });
+          const t = setTimeout(() => resolve({ error: 'translator is slow, try again' }), 8000);
+          k.emit('translate:request', { id, mode }, (a) => {
+            clearTimeout(t);
+            resolve(a.ok ? { text: a.text, via: a.via } : { error: a.error });
+          });
+        }),
     };
   }, [socket, members, meId]);
 }

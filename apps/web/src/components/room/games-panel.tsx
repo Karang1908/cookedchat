@@ -44,6 +44,9 @@ export function GamesPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         <button onClick={() => void run('forecast posted', a.forecast())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🌦️ chat forecast</button>
         <button onClick={() => void run('rolling the tape', a.replay())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🎬 instant replay</button>
+        <button onClick={() => void run('season recap posted', a.recap())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">📺 season recap</button>
+        <button onClick={() => void run('awards posted', a.awards())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🏆 chat awards</button>
+        <button onClick={() => void run('your Wrapped is ready', a.wrapped())} className="col-span-2 rounded-xl border border-magenta/30 bg-magenta/10 px-2 py-2.5 text-left text-xs font-bold transition hover:border-magenta/70 active:scale-95">🎁 my Brainrot Wrapped</button>
       </div>
 
       <form className="mt-3" onSubmit={(e) => { e.preventDefault(); void run('hot take is live', a.hotTake(take), () => setTake('')); }}>

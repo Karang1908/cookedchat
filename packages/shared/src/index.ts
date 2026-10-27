@@ -13,3 +13,6 @@ export * from './content.js';
 export * from './translate.js';
 export * from './format.js';
 export * from './weather.js';
+export * from './awards.js';
+export * from './wrapped.js';
+export * from './recap.js';

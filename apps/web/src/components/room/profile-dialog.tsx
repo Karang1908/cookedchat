@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { CLASSES, CREATURES, TIERS, fmtDuration } from '@cooked/shared';
 import type { Member } from '@cooked/shared';
 import { fmtAura } from '@/lib/format';
+import { useRoomActions } from '@/lib/room-actions';
 import { Avatar } from '../avatar';
 
 export function ProfileDialog({ member, onClose }: { member: Member | null; onClose: () => void }) {
@@ -16,6 +17,9 @@ export function ProfileDialog({ member, onClose }: { member: Member | null; onCl
     return () => window.removeEventListener('keydown', h);
   }, [member, onClose]);
   const s = member?.stats;
+  const actions = useRoomActions();
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => setErr(null), [member?.id]);
   return (
     <AnimatePresence>
       {member && s && (
@@ -58,6 +62,8 @@ export function ProfileDialog({ member, onClose }: { member: Member | null; onCl
               <Stat label="avg reply" value={s.avgReplyMs === null ? '—' : fmtDuration(s.avgReplyMs)} />
               <Stat label="dry texts" value={`${s.dry}`} />
             </dl>
+            <button onClick={async () => { const e = await actions.wrapped(member.id); if (e) setErr(e); else onClose(); }} className="mt-3 w-full rounded-xl border border-magenta/40 bg-magenta/15 py-2.5 text-sm font-bold transition hover:border-magenta active:scale-[0.98]">🎁 post {member.name}&apos;s Brainrot Wrapped</button>
+            {err && <p role="alert" className="pop-in mt-2 rounded-lg bg-ember/15 px-3 py-1.5 text-center text-xs font-semibold text-ember">{err}</p>}
           </motion.div>
         </motion.div>
       )}

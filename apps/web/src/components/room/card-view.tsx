@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { BorderBeam } from 'border-beam';
-import { Crown } from 'lucide-react';
+import { Crown, Download, Share2 } from 'lucide-react';
 import type { Card, ChatMessage } from '@cooked/shared';
 import { useRoomActions } from '@/lib/room-actions';
+import { renderAwards, renderMeme, renderWrapped, shareOrDownload } from '@/lib/share-card';
 import { Avatar } from '../avatar';
 
 type Of<T extends Card['type']> = Extract<Card, { type: T }>;
@@ -23,7 +24,15 @@ export function CardView({ m }: { m: ChatMessage }) {
     case 'replay': return <ReplayCard card={card} />;
     case 'weather': return <WeatherCard card={card} />;
     case 'dare': return <DareCard card={card} />;
-    default: return <Shell label={card.type}><p className="text-sm text-mute">{m.text || card.type}</p></Shell>;
+    case 'recap': return <RecapCard card={card} />;
+    case 'awards': return <AwardsCard card={card} />;
+    case 'wrapped': return <WrappedCard card={card} />;
+    case 'meme': return <MemeCard card={card} />;
+    default: {
+      // exhaustive: adding a Card type without a renderer is now a compile error here
+      const unhandled: never = card;
+      return <Shell label="card"><p className="text-sm text-mute">{m.text || String((unhandled as { type?: string }).type)}</p></Shell>;
+    }
   }
 }
 
@@ -238,5 +247,110 @@ function Poster({ card }: { card: Of<'poster'> }) {
       <div className="mt-1 font-mono text-xs uppercase tracking-widest">last seen {card.ago} ago</div>
       <div className="mt-3 border-t border-[#241c0e]/30 pt-2 text-xs">If found, please reply. Do not leave on read.</div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- recap / awards / wrapped / meme
+
+function RecapCard({ card }: { card: Of<'recap'> }) {
+  return (
+    <Shell label="📺 Previously on this group chat…" tone="blurple">
+      <h4 className="font-display text-2xl uppercase leading-tight tracking-wide">{card.title.replace('Previously on this group chat… ', '')}</h4>
+      <ol className="mt-2 space-y-3">
+        {card.episodes.map((ep) => (
+          <li key={ep.title} className="border-l-2 border-blurple pl-3">
+            <div className="text-sm font-bold">{ep.title}</div>
+            <div className="text-xs text-mute">{ep.summary}</div>
+            <div className="mt-0.5 text-xs italic text-sun">{ep.cliffhanger}</div>
+          </li>
+        ))}
+      </ol>
+    </Shell>
+  );
+}
+
+/** renders the shareable PNG for a card once, shows it, and offers share/download */
+function useShareImage(render: () => Promise<Blob>, deps: unknown[]) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [blob, setBlob] = useState<Blob | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let revoked: string | null = null;
+    let live = true;
+    render().then((b) => {
+      if (!live) return;
+      revoked = URL.createObjectURL(b);
+      setBlob(b);
+      setUrl(revoked);
+    }).catch(() => live && setErr('could not render the image'));
+    return () => {
+      live = false;
+      if (revoked) URL.revokeObjectURL(revoked);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return { url, blob, err };
+}
+
+function ShareBar({ blob, name, text }: { blob: Blob | null; name: string; text: string }) {
+  const [state, setState] = useState<string | null>(null);
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <button disabled={!blob} onClick={async () => blob && setState(await shareOrDownload(blob, name, text))} className="flex items-center gap-1.5 rounded-lg bg-blurple px-3 py-1.5 text-xs font-bold transition enabled:hover:bg-blurple-soft enabled:active:scale-95 disabled:opacity-40" aria-label="Share image">
+        <Share2 size={14} /> share
+      </button>
+      {blob && <a href="#" onClick={(e) => { e.preventDefault(); const u = URL.createObjectURL(blob); const a = Object.assign(document.createElement('a'), { href: u, download: name }); a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000); setState('downloaded'); }} className="flex items-center gap-1 text-xs text-blurple-soft underline"><Download size={13} /> save png</a>}
+      {state && <span role="status" className="text-xs text-mint">{state}</span>}
+    </div>
+  );
+}
+
+function AwardsCard({ card }: { card: Of<'awards'> }) {
+  const { blob } = useShareImage(() => renderAwards(card), [card]);
+  return (
+    <Shell label="🏆 Chat awards" tone="sun">
+      <ul className="space-y-2">
+        {card.awards.map((a) => (
+          <li key={a.title} className="flex items-start gap-3">
+            <span className="text-2xl leading-none" aria-hidden>{a.emoji}</span>
+            <div className="min-w-0">
+              <div className="text-sm font-bold">{a.title}: <span className="text-sun">{a.name}</span></div>
+              <div className="text-xs text-mute">{a.why}</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <ShareBar blob={blob} name="chat-awards.png" text="Chat awards from Cooked Chat 🏆" />
+    </Shell>
+  );
+}
+
+function WrappedCard({ card }: { card: Of<'wrapped'> }) {
+  const { url, blob, err } = useShareImage(() => renderWrapped(card), [card]);
+  return (
+    <Shell label={`🎁 ${card.name}'s Brainrot Wrapped`} tone="magenta" glow>
+      <p className="text-base font-medium leading-snug">You are {card.breakdown.map((b) => `${b.pct}% ${b.label}`).join(', ')}.</p>
+      <p className="mt-1 text-sm text-mute">Your final form is <b className="text-text">{card.finalForm}</b>.</p>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={`${card.name}'s Brainrot Wrapped card`} className="mt-3 w-full max-w-xs rounded-xl border border-white/10" />
+      ) : <div className="mt-3 aspect-[4/5] w-full max-w-xs animate-pulse rounded-xl bg-ink-700" />}
+      {err && <p role="alert" className="text-xs text-ember">{err}</p>}
+      <ShareBar blob={blob} name={`wrapped-${card.name.toLowerCase()}.png`} text={`${card.name}'s Brainrot Wrapped 🎁`} />
+    </Shell>
+  );
+}
+
+function MemeCard({ card }: { card: Of<'meme'> }) {
+  const { url, blob, err } = useShareImage(() => renderMeme(card), [card]);
+  return (
+    <Shell label="🗿 Auto meme" tone="mint">
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={`Meme: ${card.top} ${card.bottom}`} className="w-full max-w-sm rounded-xl border border-white/10" />
+      ) : <div className="aspect-square w-full max-w-sm animate-pulse rounded-xl bg-ink-700" />}
+      {err && <p role="alert" className="text-xs text-ember">{err}</p>}
+      <ShareBar blob={blob} name="cooked-meme.png" text="a meme from Cooked Chat 🗿" />
+    </Shell>
   );
 }

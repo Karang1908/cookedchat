@@ -12,6 +12,8 @@ export interface CommentContext {
   recent: { name: string; text: string }[];
   settings: RoomSettings;
   midnight: boolean;
+  /** set when this line is a rival commentator answering another persona */
+  rivalOf?: { label: string; line: string };
 }
 
 export const MAX_LINE = 160;
@@ -28,6 +30,7 @@ export function buildMessages(c: CommentContext): ChatMsg[] {
     `Use at most 2 emoji, from: ${TREND_EMOJI.join(' ')}.`,
     `Roast the behavior, never the person's identity. Never mention race, religion, gender, sexuality, disability, health, family or appearance.`,
     c.midnight ? 'It is the middle of the night: get weirder and more philosophical.' : '',
+    c.rivalOf ? `You are the RIVAL commentator. Another commentator (${c.rivalOf.label}) just said: "${c.rivalOf.line.slice(0, 160)}". Answer THEM directly, in your own voice, and disagree with them.` : '',
     `Example of your voice: ${persona.example}`,
   ]
     .filter(Boolean)

@@ -54,6 +54,11 @@ export class Room {
   lastForecastAt = 0;
   lastReplayAt = 0;
   readonly lastHotTakeAt = new Map<string, number>();
+  readonly translateTimes = new Map<string, number[]>();
+  readonly lastWrappedAt = new Map<string, number>();
+  lastMemeAt = 0;
+  lastRecapAt = 0;
+  lastAwardsAt = 0;
   readonly lastConfessAt = new Map<string, number>();
   membersDirty = false;
   extrasDirty = false;
