@@ -4,11 +4,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { BorderBeam } from 'border-beam';
 import { ThinkingOrb } from 'thinking-orbs';
-import { ArrowDown, Check, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowDown, Check, CornerUpLeft, Pencil, SmilePlus, Trash2, X } from 'lucide-react';
 import { PERSONAS } from '@cooked/shared';
 import type { ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { clockTime } from '@/lib/format';
 import { Avatar } from '../avatar';
+import { CardView } from './card-view';
 
 interface Props {
   messages: ChatMessage[];
@@ -20,21 +21,32 @@ interface Props {
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onSeen: (id: string) => void;
+  onReact: (id: string, emoji: string) => void;
+  onReply: (m: ChatMessage) => void;
+  onProfile: (memberId: string) => void;
 }
+
+const PICKER = ['🗿', '💀', '😭', '🫡', '🔥', '😂', '🥀', '🧢'];
 
 const TRIGGER_LABEL: Record<string, string> = {
   six_seven: '67', fanum: 'fanum tax', reply_later: 'reply later', typing_drama: 'typing spy', typed_deleted: 'typing spy', slow_reply: 'shadow realm',
-  burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am', cooked_max: 'cooked',
+  burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am',
+  cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', mewing: 'mewing', simp_radar: 'simp radar',
+  missing: 'missing', owl: 'the owl', betrayal: 'betrayal', class_change: 'evolution', scouter: 'scouter', mog: 'mog', lore: 'lore', chaos: 'chaos agent',
+  weather: 'forecast', replay: 'instant replay', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
 };
 
-export function MessageList({ messages, members, meId, settings, typingIds, thinking, onEdit, onDelete, onSeen }: Props) {
+export function MessageList({ messages, members, meId, settings, typingIds, thinking, onEdit, onDelete, onSeen, onReact, onReply, onProfile }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   const seenSent = useRef(new Set<string>());
   const [unread, setUnread] = useState(0);
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
+  const [picker, setPicker] = useState<string | null>(null);
+  /** tapped message: shows its toolbar on touch screens, where there is no hover */
+  const [selected, setSelected] = useState<string | null>(null);
   const byId = new Map(members.map((m) => [m.id, m]));
-  const persona = PERSONAS[settings.persona];
+  const msgById = new Map(messages.map((m) => [m.id, m]));
   const lastAiId = [...messages].reverse().find((m) => m.kind === 'ai')?.id;
 
   useLayoutEffect(() => {
@@ -65,6 +77,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
   }, [messages.length, onSeen]);
 
   const typingNames = typingIds.filter((id) => id !== meId).map((id) => byId.get(id)?.name ?? '?');
+  const thinkingPersona = PERSONAS[settings.persona];
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -75,6 +88,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
           pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
           if (pinned.current) setUnread(0);
         }}
+        onClick={() => { setPicker(null); setSelected(null); }}
         className="scroll-thin absolute inset-0 space-y-1 overflow-y-auto px-3 py-4 sm:px-5"
         role="log"
         aria-live="polite"
@@ -87,19 +101,26 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
         )}
         {messages.map((m, i) => {
           const prev = messages[i - 1];
-          if (m.kind === 'ai') return <AiCard key={m.id} m={m} persona={persona} latest={m.id === lastAiId} />;
+          if (m.kind === 'card') return <CardView key={m.id} m={m} meId={meId} />;
+          if (m.kind === 'ai') return <AiCard key={m.id} m={m} latest={m.id === lastAiId} onReact={onReact} meId={meId} />;
           const author = m.authorId ? byId.get(m.authorId) : undefined;
           const mine = m.authorId === meId;
           const header = !prev || prev.kind !== 'user' || prev.authorId !== m.authorId || m.at - prev.at > 120_000;
           const isEditing = editing?.id === m.id;
+          const quoted = m.replyToId ? msgById.get(m.replyToId) : undefined;
           return (
             <div key={m.id} data-mid={!mine && m.kind === 'user' ? m.id : undefined} className={clsx('group pop-in flex gap-2', mine && 'flex-row-reverse', header && i > 0 && 'pt-2')}>
-              {!mine && (header && author ? <Avatar type={author.avatar} size={36} /> : <div className="w-9 shrink-0" />)}
+              {!mine && (header && author ? <button onClick={() => onProfile(author.id)} aria-label={`${author.name} profile`}><Avatar type={author.avatar} size={36} /></button> : <div className="w-9 shrink-0" />)}
               <div className={clsx('flex min-w-0 max-w-[80%] flex-col', mine ? 'items-end' : 'items-start')}>
                 {header && !mine && (
                   <div className="mb-0.5 flex items-center gap-1.5 text-xs font-semibold text-blurple-soft">
                     {author?.name ?? 'unknown'}
                     {author?.isBot && <span className="rounded bg-ink-600 px-1 py-px font-mono text-[9px] uppercase text-mute">bot</span>}
+                  </div>
+                )}
+                {quoted && (
+                  <div className="mb-0.5 max-w-full truncate rounded-lg border-l-2 border-blurple bg-ink-800/80 px-2 py-1 text-xs text-mute">
+                    <b className="text-blurple-soft">{byId.get(quoted.authorId ?? '')?.name ?? '?'}</b> {quoted.deleted ? 'deleted message' : quoted.text}
                   </div>
                 )}
                 <div className="relative">
@@ -117,26 +138,32 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                       <button type="button" aria-label="Cancel edit" onClick={() => setEditing(null)} className="rounded-lg bg-ink-700 p-1.5 text-mute"><X size={16} /></button>
                     </form>
                   ) : (
-                    <div className={clsx('whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[15px] leading-snug', mine ? 'rounded-br-md bg-gradient-to-br from-blurple to-[#7c5cff] text-white shadow-lg shadow-blurple/20' : 'rounded-bl-md bg-ink-700 text-text')}>
+                    <div onClick={(e) => { e.stopPropagation(); setSelected(selected === m.id ? null : m.id); }} className={clsx('whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[15px] leading-snug', mine ? 'rounded-br-md bg-gradient-to-br from-blurple to-[#7c5cff] text-white shadow-lg shadow-blurple/20' : 'rounded-bl-md bg-ink-700 text-text')}>
                       {m.deleted ? <em className="text-white/50">message deleted</em> : m.text}
                       {m.edited && !m.deleted && <span className="ml-1.5 text-[10px] opacity-60">(edited)</span>}
                     </div>
                   )}
-                  {mine && !m.deleted && !isEditing && (
-                    <div className="absolute -left-14 top-1/2 flex -translate-y-1/2 gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-60">
-                      <button aria-label="Edit message" onClick={() => setEditing({ id: m.id, draft: m.text })} className="rounded-md bg-ink-700 p-1.5 text-mute hover:text-white"><Pencil size={13} /></button>
-                      <button aria-label="Delete message" onClick={() => onDelete(m.id)} className="rounded-md bg-ink-700 p-1.5 text-mute hover:text-ember"><Trash2 size={13} /></button>
+                  {!m.deleted && !isEditing && (
+                    <div className={clsx('absolute -top-4 z-10 flex gap-0.5 rounded-full border border-white/10 bg-ink-800 p-0.5 shadow-lg transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
+                      <IconBtn label="Reply" onClick={() => onReply(m)}><CornerUpLeft size={13} /></IconBtn>
+                      <IconBtn label="React" onClick={(e) => { e.stopPropagation(); setPicker(picker === m.id ? null : m.id); }}><SmilePlus size={13} /></IconBtn>
+                      {mine && <IconBtn label="Edit message" onClick={() => setEditing({ id: m.id, draft: m.text })}><Pencil size={13} /></IconBtn>}
+                      {mine && <IconBtn label="Delete message" onClick={() => onDelete(m.id)} danger><Trash2 size={13} /></IconBtn>}
+                    </div>
+                  )}
+                  {picker === m.id && (
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex gap-0.5 rounded-full border border-white/10 bg-ink-800 p-1 shadow-xl', mine ? 'right-0' : 'left-0', '-top-12')} role="menu" aria-label="Pick a reaction">
+                      {PICKER.map((e) => (
+                        <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-full px-1.5 py-1 text-lg transition hover:scale-125 hover:bg-white/10">{e}</button>
+                      ))}
                     </div>
                   )}
                 </div>
-                {m.aiReactions.length > 0 && (
-                  <div className="-mt-1.5 flex gap-1 px-1">
-                    {m.aiReactions.map((e) => (
-                      <span key={e} className="pop-in rounded-full border border-white/10 bg-ink-800 px-1.5 py-0.5 text-sm shadow">{e}</span>
-                    ))}
-                  </div>
-                )}
-                <span className="mt-0.5 px-1 text-[10px] text-mute/80">{clockTime(m.at)}</span>
+                <Reactions m={m} meId={meId} onReact={onReact} />
+                <div className="mt-0.5 flex items-center gap-2 px-1 text-[10px] text-mute/80">
+                  <span>{clockTime(m.at)}</span>
+                  {(m.ohio ?? 0) >= 50 && !m.deleted && <span className={clsx('rounded px-1 font-mono', (m.ohio ?? 0) >= 85 ? 'bg-ember/20 text-ember' : 'bg-sun/15 text-sun')} title="Ohio level">🫩 ohio {m.ohio}%</span>}
+                </div>
               </div>
             </div>
           );
@@ -144,7 +171,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
         {thinking && (
           <div className="pop-in mx-auto flex w-full max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-ink-800/80 px-4 py-3">
             <ThinkingOrb state="composing" size={20} />
-            <span className="font-mono text-xs uppercase tracking-widest text-mute">{persona.label} is cooking…</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-mute">{thinkingPersona.label} is cooking…</span>
           </div>
         )}
         {typingNames.length > 0 && (
@@ -173,7 +200,34 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
   );
 }
 
-function AiCard({ m, persona, latest }: { m: ChatMessage; persona: { emoji: string; label: string }; latest: boolean }) {
+function IconBtn({ label, onClick, danger, children }: { label: string; onClick: (e: React.MouseEvent) => void; danger?: boolean; children: React.ReactNode }) {
+  return (
+    <button aria-label={label} title={label} onClick={onClick} className={clsx('rounded-full p-1.5 text-mute transition hover:bg-white/10', danger ? 'hover:text-ember' : 'hover:text-white')}>
+      {children}
+    </button>
+  );
+}
+
+/** AI reactions (who it judged) plus member reactions (click to toggle yours) */
+function Reactions({ m, meId, onReact }: { m: ChatMessage; meId?: string; onReact: (id: string, emoji: string) => void }) {
+  const user = Object.entries(m.reactions ?? {});
+  if (!m.aiReactions.length && !user.length) return null;
+  return (
+    <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
+      {m.aiReactions.map((e) => (
+        <span key={`ai-${e}`} title="the AI reacted" className="pop-in rounded-full border border-magenta/40 bg-ink-800 px-1.5 py-0.5 text-sm shadow">{e}</span>
+      ))}
+      {user.map(([e, ids]) => (
+        <button key={e} onClick={() => onReact(m.id, e)} aria-pressed={!!meId && ids.includes(meId)} className={clsx('pop-in flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-sm shadow', meId && ids.includes(meId) ? 'border-blurple bg-blurple/25' : 'border-white/10 bg-ink-800')}>
+          {e}<span className="font-mono text-[11px] text-mute">{ids.length}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AiCard({ m, latest, onReact, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; meId?: string }) {
+  const persona = PERSONAS[m.persona ?? 'gremlin'];
   const card = (
     <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-ink-800/95 px-4 py-3" style={{ borderRadius: 16 }}>
       <span className="text-2xl leading-none" aria-hidden>{persona.emoji}</span>
@@ -195,6 +249,7 @@ function AiCard({ m, persona, latest }: { m: ChatMessage; persona: { emoji: stri
       ) : (
         card
       )}
+      <Reactions m={m} meId={meId} onReact={onReact} />
     </div>
   );
 }

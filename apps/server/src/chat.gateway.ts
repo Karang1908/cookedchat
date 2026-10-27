@@ -3,7 +3,7 @@ import { ConnectedSocket, MessageBody, OnGatewayDisconnect, OnGatewayInit, Subsc
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Socket } from 'socket.io';
 import { FX_KINDS, SOUND_NAMES } from '@cooked/shared';
-import type { Ack, ClientToServerEvents, FxKind, JoinPayload, RoomSnapshot, ServerToClientEvents, SimulateKind, SoundName, TriggerKind, TypingPayload } from '@cooked/shared';
+import type { Ack, BrainrotLevel, ClientToServerEvents, FxKind, JoinPayload, PersonaId, RoastIntensity, RoomSnapshot, ServerToClientEvents, SimulateKind, SoundName, TriggerKind, TypingPayload } from '@cooked/shared';
 import { loadConfig } from './config.js';
 import type { Config } from './config.js';
 import { Engine } from './engine.js';
@@ -21,8 +21,8 @@ interface SocketData {
 }
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
-const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read'];
-const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max'];
+const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone'];
+const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta'];
 
 const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -82,10 +82,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('chat:send')
-  send(@ConnectedSocket() socket: Sock, @MessageBody() p: { text: string }): Ack<{ id: string }> {
+  send(@ConnectedSocket() socket: Sock, @MessageBody() p: { text: string; replyToId?: string }): Ack<{ id: string }> {
     const c = this.ctx(socket);
     if (!c) return { ok: false, error: 'join a room first' };
-    const r = this.engine.send(c.room, c.memberId, str(p?.text));
+    const r = this.engine.send(c.room, c.memberId, str(p?.text), p?.replyToId ? str(p.replyToId, 64) : undefined);
     if (!r.ok) return r;
     r.done.catch((e) => this.log.error(e)); // fire and forget: the ack must not wait on the AI
     return { ok: true, id: r.id };
@@ -101,6 +101,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   remove(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string }) {
     const c = this.ctx(socket);
     if (c) this.engine.delete(c.room, c.memberId, str(p?.id, 64));
+  }
+
+  @SubscribeMessage('chat:react')
+  react(@ConnectedSocket() socket: Sock, @MessageBody() p: { id: string; emoji: string }) {
+    const c = this.ctx(socket);
+    if (c) this.engine.reactTo(c.room, c.memberId, str(p?.id, 64), str(p?.emoji, 16));
+  }
+
+  @SubscribeMessage('room:vibe')
+  vibe(@ConnectedSocket() socket: Sock, @MessageBody() p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) {
+    const c = this.ctx(socket);
+    if (c && p && typeof p === 'object') this.engine.setVibe(c.room, c.memberId, p);
   }
 
   @SubscribeMessage('chat:seen')
@@ -175,6 +187,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   adminAddBots(@ConnectedSocket() s: Sock) {
     const room = this.admin(s);
     if (room) this.engine.addBots(room);
+  }
+
+  @SubscribeMessage('admin:elsewhere')
+  adminElsewhere(@ConnectedSocket() s: Sock, @MessageBody() p: { memberId: string; on: boolean }) {
+    const room = this.admin(s);
+    if (room) this.engine.setElsewhere(room, str(p?.memberId, 64), !!p?.on);
+  }
+
+  @SubscribeMessage('admin:aura')
+  adminAura(@ConnectedSocket() s: Sock, @MessageBody() p: { memberId: string; delta: number }) {
+    const room = this.admin(s);
+    if (room) this.engine.adminAura(room, str(p?.memberId, 64), Number(p?.delta));
   }
 
   @SubscribeMessage('admin:botSay')

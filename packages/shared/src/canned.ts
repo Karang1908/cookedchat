@@ -21,6 +21,26 @@ export const CANNED: Record<TriggerKind, string[]> = {
   tung_tung: ['TUNG TUNG TUNG SAHUR', 'it is 3am. TUNG TUNG TUNG SAHUR. go to sleep 🥀'],
   cooked_max: ["IT'S OVER 🥀", "chat is cooked. we're so cooked. IT'S OVER 🥀"],
   manual: ['chat 🗿'],
+  ohio_high: ['Ohio level {ohio}%. aura -500 🥀', '{name} just sent an Ohio-certified message ({ohio}%) 💀', 'scientists confirm {name} is {ohio}% Ohio 🫩'],
+  cap: ['🧢 cap detector: {pct}% on that one, {name}', 'that claim has the structural integrity of wet cardboard, {name} 🧢', '{name} said it with a straight face. {pct}% cap 🧢'],
+  tone_shift: ['"{prev}" to "{text}" is crazy. {name} is NOT fine 🥶', 'the punctuation changed. {name} is upset. we all felt it 👁️', '{name} went from "{prev}" to "{text}". the temperature dropped 🥶'],
+  derail: ['how did we get from that to this 💀', 'the plot has left the building 🗿', 'chat. what are we even talking about now 🥀'],
+  mewing: ['stop arguing and go mew 🤫🧏', 'you two need to mew. immediately 🤫🧏', 'argument detected. prescribing mewing 🤫🧏'],
+  simp_radar: ['{name} replies to {other} in {fast} and to everyone else in {slow} 👁️', 'simp radar is going off: {name} → {other}. {fast} vs {slow} for the rest of us 💀'],
+  missing: ['MISSING: {name}. last seen {ago} ago. if found, please reply 🥀', 'have you seen {name}? last seen {ago} ago 👁️'],
+  owl: ["It's {time}. {name} has not replied in {ago}. We know where you live. 🦉", '🦉 {name}. {ago} of silence. the owl is patient. the owl is also at your door.'],
+  betrayal: ['{name} is online elsewhere but leaving {other} on read. betrayal. 🗡️', 'plot twist: {name} is active in another app and ignored {other}. the audacity 🥶'],
+  class_change: ['{name} evolved: {from} → {to} {emoji}', 'class change! {name} is now a {to} {emoji}'],
+  scouter: ['Power level: {power}?! 😳', 'the scouter is beeping... {name}: {power} 😳'],
+  mog: ['{name} just mogged {other}. {other} is looksmaxxing in the corner 🗿', '{other} got mogged by {name}. +1000 aura. the corner is crowded 🫡'],
+  lore: ['Remember when {name} said "{text}"? Anyway. 🗿', 'ancient lore: {name} once said "{text}". we never forgot 👁️'],
+  chaos: ['chaos agent here. everyone reply as a pirate from now on 🏴‍☠️', 'plot twist: the next person to type loses 100 aura 🥀'],
+  weather: ['forecast: scattered sarcasm with a chance of passive-aggression 🌦️'],
+  replay: ["let's go to the tape 🎬", 'instant replay: we have footage 🎬'],
+  copypasta: ['chat is dead so here is a fresh copypasta 🥀'],
+  vote_result: ['the votes are in 🗿', 'chat has spoken 🗿'],
+  battle_result: ['the judges have decided 🎙️'],
+  bet_result: ['the market has settled 💰'],
 };
 
 export const DEAD_CHAT_PROMPTS = [
@@ -32,8 +52,10 @@ export const DEAD_CHAT_PROMPTS = [
 ];
 
 /** pick a canned line deterministically from rng (inject Math.random in prod) */
-export function cannedLine(kind: TriggerKind, vars: { name?: string; text?: string }, rng: () => number = Math.random): string {
+export function cannedLine(kind: TriggerKind, vars: { name?: string; text?: string; [k: string]: string | number | undefined }, rng: () => number = Math.random): string {
   const pool = CANNED[kind];
   const line = pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))]!;
-  return line.replaceAll('{name}', vars.name ?? 'bro').replaceAll('{text}', vars.text ?? 'k');
+  const merged: Record<string, string | number | undefined> = { name: 'bro', text: 'k', ...vars };
+  // leave unknown placeholders alone so a missing var is visible instead of a silent blank
+  return line.replace(/\{(\w+)\}/g, (m, k: string) => (merged[k] !== undefined ? String(merged[k]) : m));
 }

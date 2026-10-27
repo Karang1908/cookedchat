@@ -1,5 +1,5 @@
-import { DEFAULT_SETTINGS } from '@cooked/shared';
-import type { AuraEntry, ChatMessage, CookedState, Member, RoomSettings, RoomSnapshot } from '@cooked/shared';
+import { DEFAULT_SETTINGS, computePublicStats, emptyStats } from '@cooked/shared';
+import type { AuraEntry, AvatarType, ChatMessage, CookedState, MemberStats, Member, RoomSettings, RoomSnapshot, RpgClass } from '@cooked/shared';
 
 export interface TypingState {
   startedAt: number; // real time
@@ -9,8 +9,45 @@ export interface TypingState {
   peak: number;
 }
 
+/** What survives a restart besides messages and the aura ledger. */
+export interface RoomExtras {
+  stats: [string, MemberStats][];
+  latency: [string, { sum: number; count: number }][];
+  coins: [string, number][];
+  lore: LoreItem[];
+  lastLoreAt: number;
+}
+
+export interface LoreItem {
+  text: string;
+  authorId: string;
+  at: number;
+  why: string;
+}
+
+export const STARTING_COINS = 1000;
+
 export class Room {
   readonly members = new Map<string, Member>();
+  readonly stats = new Map<string, MemberStats>();
+  /** `${from}>${to}`: how fast `from` answers `to` */
+  readonly latency = new Map<string, { sum: number; count: number }>();
+  readonly simpFired = new Set<string>();
+  readonly owlFired = new Set<string>();
+  readonly posterFired = new Set<string>();
+  readonly scouterFired = new Set<string>();
+  readonly lastClass = new Map<string, RpgClass>();
+  readonly mogged = new Set<string>();
+  lore: LoreItem[] = [];
+  lastLoreAt = 0; // room clock
+  membersDirty = false;
+  extrasDirty = false;
+  lastExtrasSaveAt = 0;
+  lastDerailAt = 0;
+  lastMewingAt = 0;
+  lastChaosAt = 0;
+  lastJumpscareAt = 0;
+  lastDayKey: string | null = null;
   messages: ChatMessage[] = [];
   ledger: AuraEntry[] = [];
   settings: RoomSettings;
@@ -27,6 +64,7 @@ export class Room {
   /** token buckets: memberId -> recent send times (real ms) */
   readonly sendTimes = new Map<string, number[]>();
   readonly lastQuickReplyAt = new Map<string, number>();
+  readonly lastVibeAt = new Map<string, number>();
 
   cookedSent = 0;
   lastCommentAt = 0; // real
@@ -42,6 +80,40 @@ export class Room {
     settings: RoomSettings = structuredClone(DEFAULT_SETTINGS),
   ) {
     this.settings = settings;
+  }
+
+  getStats(memberId: string): MemberStats {
+    let st = this.stats.get(memberId);
+    if (!st) this.stats.set(memberId, (st = emptyStats()));
+    return st;
+  }
+
+  /** The only way members are created, so every member always has coins, stats and a creature. */
+  addMember(id: string, name: string, avatar: AvatarType, isBot: boolean): Member {
+    const m: Member = {
+      id, name, avatar, isBot, online: true, aura: 0, coins: STARTING_COINS, elsewhere: false,
+      stats: computePublicStats([{ id, aura: 0, stats: this.getStats(id) }]).get(id)!,
+    };
+    this.members.set(id, m);
+    this.membersDirty = true;
+    return m;
+  }
+
+  /** Re-derives every member's public stats (tiers and the Final Boss are relative to the room). */
+  recompute(): void {
+    const all = computePublicStats([...this.members.values()].map((m) => ({ id: m.id, aura: m.aura, stats: this.getStats(m.id) })));
+    for (const m of this.members.values()) m.stats = all.get(m.id)!;
+    this.membersDirty = false;
+  }
+
+  extras(): RoomExtras {
+    return {
+      stats: [...this.stats],
+      latency: [...this.latency],
+      coins: [...this.members.values()].map((m) => [m.id, m.coins]),
+      lore: this.lore,
+      lastLoreAt: this.lastLoreAt,
+    };
   }
 
   /** the room clock: real time plus whatever the admin has warped */

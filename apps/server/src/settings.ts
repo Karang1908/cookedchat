@@ -14,6 +14,9 @@ export function applySettingsPatch(cur: RoomSettings, patch: SettingsPatch): Roo
   if (typeof patch.persona === 'string' && patch.persona in PERSONAS) next.persona = patch.persona as PersonaId;
   if (typeof patch.commentary === 'boolean') next.commentary = patch.commentary;
   if (typeof patch.autopilotBots === 'boolean') next.autopilotBots = patch.autopilotBots;
+  if (typeof patch.chaos === 'boolean') next.chaos = patch.chaos;
+  if (typeof patch.jumpscare === 'boolean') next.jumpscare = patch.jumpscare;
+  if (patch.rival === null || (typeof patch.rival === 'string' && patch.rival in PERSONAS)) next.rival = patch.rival as PersonaId | null;
   for (const [k, v] of Object.entries(patch.timings ?? {})) {
     if (!(k in next.timings) || typeof v !== 'number' || !Number.isFinite(v)) continue;
     const key = k as keyof RoomTimings;

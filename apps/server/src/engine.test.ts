@@ -296,5 +296,9 @@ test('settings patch: validates ranges and ignores junk', () => {
   assert.equal(next.timings.slowReplyMs, 7 * 24 * 60 * 60_000);
   assert.equal(next.timings.burstCount, 2);
   assert.ok(!('bogus' in next.timings));
+  const more = applySettingsPatch(DEFAULT_SETTINGS, { chaos: true, jumpscare: true, rival: 'boomer', persona: 'mom' });
+  assert.deepEqual([more.chaos, more.jumpscare, more.rival, more.persona], [true, true, 'boomer', 'mom']);
+  assert.equal(applySettingsPatch(more, { rival: null }).rival, null);
+  assert.equal(applySettingsPatch(more, { rival: 'nope' as any }).rival, 'boomer');
   assert.notEqual(next.timings, DEFAULT_SETTINGS.timings);
 });

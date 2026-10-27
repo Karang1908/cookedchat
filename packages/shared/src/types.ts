@@ -6,6 +6,26 @@ export const AVATARS = ['clover', 'flower', 'triangle', 'square', 'blob', 'ghost
 export type AvatarType = (typeof AVATARS)[number];
 
 export type TriggerKind =
+  | 'ohio_high'
+  | 'cap'
+  | 'tone_shift'
+  | 'derail'
+  | 'mewing'
+  | 'simp_radar'
+  | 'missing'
+  | 'owl'
+  | 'betrayal'
+  | 'class_change'
+  | 'scouter'
+  | 'mog'
+  | 'lore'
+  | 'chaos'
+  | 'weather'
+  | 'replay'
+  | 'copypasta'
+  | 'vote_result'
+  | 'battle_result'
+  | 'bet_result'
   | 'six_seven'
   | 'fanum'
   | 'reply_later'
@@ -23,7 +43,7 @@ export type TriggerKind =
   | 'cooked_max'
   | 'manual';
 
-export type AuraReason = 'fanum_tax' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
+export type AuraReason = 'ohio' | 'cap' | 'hot_take' | 'fanum_tax' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
 
 export type FxKind = 'shake' | 'flash' | 'glitch' | 'confetti' | 'emojiRain' | 'zoom' | 'deepfry' | 'jumpscare' | 'invert' | 'spin' | 'meltdown';
 export const FX_KINDS: readonly FxKind[] = ['shake', 'flash', 'glitch', 'confetti', 'emojiRain', 'zoom', 'deepfry', 'jumpscare', 'invert', 'spin', 'meltdown'];
@@ -50,6 +70,14 @@ export interface RoomTimings {
   burstWindowMs: number;
   /** minimum real-time gap between AI comments */
   commentCooldownMs: number;
+  /** silent this long: missing-person poster */
+  missingMs: number;
+  /** silent this long after 9pm: the Duolingo owl */
+  owlMs: number;
+  /** minimum room-clock gap before an old inside joke is brought back */
+  loreGapMs: number;
+  /** how long a vote / battle stays open (real ms) */
+  voteWindowMs: number;
 }
 
 export const DEFAULT_TIMINGS: RoomTimings = {
@@ -62,6 +90,10 @@ export const DEFAULT_TIMINGS: RoomTimings = {
   burstCount: 5,
   burstWindowMs: 60_000,
   commentCooldownMs: 6_000,
+  missingMs: 6 * 60 * 60_000,
+  owlMs: 4 * 60 * 60_000,
+  loreGapMs: 6 * 60 * 60_000,
+  voteWindowMs: 30_000,
 };
 
 export interface RoomSettings {
@@ -72,6 +104,12 @@ export interface RoomSettings {
   commentary: boolean;
   /** bots post canned chatter on their own */
   autopilotBots: boolean;
+  /** random dares and plot twists every few minutes */
+  chaos: boolean;
+  /** random full-screen jumpscares */
+  jumpscare: boolean;
+  /** a second persona that argues with the first on every comment */
+  rival: PersonaId | null;
   timings: RoomTimings;
 }
 
@@ -81,8 +119,32 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   intensity: 2,
   commentary: true,
   autopilotBots: false,
+  chaos: false,
+  jumpscare: false,
+  rival: null,
   timings: DEFAULT_TIMINGS,
 };
+
+export type RpgClass = 'lurker' | 'instigator' | 'healer' | 'final_boss';
+export type CreatureId = 'tung' | 'bombardiro' | 'ballerina' | 'patapim' | 'trippi' | 'cappuccino' | 'lirili';
+export type Tier = 'sigma' | 'alpha' | 'beta' | 'npc';
+
+/** Derived server-side from behavior. Re-sent with the member list as it evolves. */
+export interface PublicStats {
+  messages: number;
+  avgReplyMs: number | null;
+  rizz: number;
+  rizzTitle: string;
+  ohioAvg: number;
+  ohioPeak: number;
+  mogs: number;
+  dry: number;
+  ghosts: number;
+  klass: RpgClass;
+  creature: CreatureId;
+  tier: Tier;
+  power: number;
+}
 
 export interface Member {
   id: string;
@@ -91,13 +153,70 @@ export interface Member {
   isBot: boolean;
   online: boolean;
   aura: number;
+  /** fake currency for the prediction market */
+  coins: number;
+  /** demo toggle: shown as "online elsewhere" (fuels the betrayal alert) */
+  elsewhere: boolean;
+  stats: PublicStats;
 }
+
+/** Rich, sometimes interactive, chat items. The server mutates them and re-sends the message with chat:update. */
+export type Card =
+  | { type: 'poster'; memberId: string; name: string; avatar: AvatarType; lastSeenAt: number; ago: string }
+  | { type: 'weather'; headline: string; forecast: { label: string; pct: number }[] }
+  | {
+      type: 'vote';
+      id: string;
+      style: 'real' | 'hottake';
+      question: string;
+      /** the member whose claim / take this is */
+      subjectId?: string;
+      options: { id: string; label: string; emoji: string }[];
+      votes: Record<string, string>;
+      closesAt: number;
+      settled?: { winner: string; note: string };
+    }
+  | {
+      type: 'bet';
+      question: string;
+      subjectId: string;
+      windowMs: number;
+      openedAt: number;
+      bets: Record<string, { side: 'yes' | 'no'; amount: number }>;
+      settled?: { outcome: 'yes' | 'no'; payouts: Record<string, number> };
+    }
+  | {
+      type: 'battle';
+      scenario: string;
+      contenders: [string, string];
+      entries: Record<string, string>;
+      closesAt: number;
+      settled?: { winnerId: string | null; verdict: string };
+    }
+  | { type: 'confession'; text: string; guessId: string; guessName: string; confidence: number }
+  | { type: 'replay'; messageId: string; authorName: string; text: string }
+  | { type: 'recap'; title: string; episodes: { title: string; summary: string; cliffhanger: string }[] }
+  | { type: 'awards'; awards: { title: string; emoji: string; memberId: string; name: string; why: string }[] }
+  | {
+      type: 'wrapped';
+      memberId: string;
+      name: string;
+      avatar: AvatarType;
+      breakdown: { label: string; pct: number }[];
+      finalForm: string;
+      creature: CreatureId;
+      stats: { aura: number; rizz: number; ohio: number; messages: number; power: number };
+    }
+  | { type: 'meme'; top: string; bottom: string; emoji: string; messageId: string }
+  | { type: 'dare'; text: string; style: 'dare' | 'twist' | 'copypasta' };
 
 export interface ChatMessage {
   id: string;
   /** null for AI-authored messages */
   authorId: string | null;
-  kind: 'user' | 'ai' | 'system';
+  kind: 'user' | 'ai' | 'system' | 'card';
+  /** set when kind is 'card' */
+  card?: Card;
   text: string;
   /** room-clock ms (real time + room offset) */
   at: number;
@@ -105,9 +224,17 @@ export interface ChatMessage {
   deleted: boolean;
   /** emoji reactions placed by the AI */
   aiReactions: string[];
+  /** emoji -> member ids who reacted */
+  reactions: Record<string, string[]>;
   /** for AI comments: what it was reacting to */
   replyTo?: string;
+  /** for user messages: the message this one answers */
+  replyToId?: string;
   trigger?: TriggerKind;
+  /** 0-100 "Ohio level" of a user message */
+  ohio?: number;
+  /** which persona spoke (AI messages), so rival commentators can differ */
+  persona?: PersonaId;
 }
 
 export interface AuraEntry {

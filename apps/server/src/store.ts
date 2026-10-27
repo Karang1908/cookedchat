@@ -3,6 +3,7 @@ import pg from 'pg';
 import { DEFAULT_SETTINGS, DEFAULT_TIMINGS } from '@cooked/shared';
 import type { AuraEntry, AvatarType, ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { Room } from './room.js';
+import type { RoomExtras } from './room.js';
 
 /** Persistence port. The engine never awaits it: a DB outage must not stop the chat. */
 export interface Store {
@@ -11,6 +12,7 @@ export interface Store {
   saveMessage(code: string, m: ChatMessage): void;
   saveEdit(messageId: string, oldText: string, at: number): void;
   saveAura(code: string, e: AuraEntry): void;
+  saveExtras(room: Room): void;
   loadRoom(code: string): Promise<Room | null>;
   close(): Promise<void>;
 }
@@ -21,6 +23,7 @@ export class NullStore implements Store {
   saveMessage() {}
   saveEdit() {}
   saveAura() {}
+  saveExtras() {}
   async loadRoom() {
     return null;
   }
@@ -59,12 +62,17 @@ export class PgStore implements Store {
   }
 
   saveMessage(code: string, m: ChatMessage) {
+    const extra = { reactions: m.reactions, ohio: m.ohio, persona: m.persona, replyToId: m.replyToId, card: m.card };
     this.enqueue(
-      `insert into messages (id, room_code, author_id, kind, text, at, edited, deleted, ai_reactions, reply_to, trigger)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-       on conflict (id) do update set text=excluded.text, edited=excluded.edited, deleted=excluded.deleted, ai_reactions=excluded.ai_reactions`,
-      [m.id, code, m.authorId, m.kind, m.text, m.at, m.edited, m.deleted, m.aiReactions, m.replyTo ?? null, m.trigger ?? null],
+      `insert into messages (id, room_code, author_id, kind, text, at, edited, deleted, ai_reactions, reply_to, trigger, extra)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       on conflict (id) do update set text=excluded.text, edited=excluded.edited, deleted=excluded.deleted, ai_reactions=excluded.ai_reactions, extra=excluded.extra`,
+      [m.id, code, m.authorId, m.kind, m.text, m.at, m.edited, m.deleted, m.aiReactions, m.replyTo ?? null, m.trigger ?? null, JSON.stringify(extra)],
     );
+  }
+
+  saveExtras(r: Room) {
+    this.enqueue(`update rooms set extras=$2 where code=$1`, [r.code, JSON.stringify(r.extras())]);
   }
 
   saveEdit(messageId: string, oldText: string, at: number) {
@@ -81,7 +89,7 @@ export class PgStore implements Store {
   async loadRoom(code: string): Promise<Room | null> {
     try {
       await this.chain; // flush pending writes first
-      const r = await this.pool.query('select tz_offset_min, clock_offset_ms, settings from rooms where code=$1', [code]);
+      const r = await this.pool.query('select tz_offset_min, clock_offset_ms, settings, extras from rooms where code=$1', [code]);
       if (!r.rowCount) return null;
       const row = r.rows[0];
       const stored = row.settings as Partial<RoomSettings>;
@@ -91,13 +99,24 @@ export class PgStore implements Store {
 
       const sums = new Map<string, number>();
       for (const a of (await this.pool.query('select member_id, sum(delta)::int as aura from aura_ledger where room_code=$1 group by member_id', [code])).rows) sums.set(a.member_id, a.aura);
+      const extras = (row.extras ?? {}) as Partial<RoomExtras>;
+      for (const [id, st] of extras.stats ?? []) room.stats.set(id, st);
+      for (const [k, v] of extras.latency ?? []) room.latency.set(k, v);
+      room.lore = extras.lore ?? [];
+      room.lastLoreAt = extras.lastLoreAt ?? 0;
+      const coins = new Map(extras.coins ?? []);
       for (const m of (await this.pool.query('select id, name, avatar, is_bot from members where room_code=$1', [code])).rows) {
-        room.members.set(m.id, { id: m.id, name: m.name, avatar: m.avatar as AvatarType, isBot: m.is_bot, online: false, aura: sums.get(m.id) ?? 0 });
+        const member = room.addMember(m.id, m.name, m.avatar as AvatarType, m.is_bot);
+        member.online = false;
+        member.aura = sums.get(m.id) ?? 0;
+        member.coins = coins.get(m.id) ?? member.coins;
       }
+      room.recompute();
       const msgs = await this.pool.query('select * from messages where room_code=$1 order by at desc limit 100', [code]);
       room.messages = msgs.rows.reverse().map((m) => ({
         id: m.id, authorId: m.author_id, kind: m.kind, text: m.text, at: Number(m.at), edited: m.edited, deleted: m.deleted,
         aiReactions: m.ai_reactions, replyTo: m.reply_to ?? undefined, trigger: m.trigger ?? undefined,
+        reactions: m.extra?.reactions ?? {}, ohio: m.extra?.ohio, persona: m.extra?.persona, replyToId: m.extra?.replyToId, card: m.extra?.card,
       }));
       const led = await this.pool.query('select * from aura_ledger where room_code=$1 order by at desc limit 50', [code]);
       room.ledger = led.rows.reverse().map((e) => ({ id: e.id, memberId: e.member_id, delta: e.delta, reason: e.reason, messageId: e.message_id ?? undefined, receipt: e.receipt, at: Number(e.at) }));

@@ -11,8 +11,8 @@ import { AuraPanel } from '../room/aura-panel';
 
 const KEY = 'cooked.adminKey';
 const WARPS: [string, number][] = [['-1h', -3_600_000], ['+5m', 300_000], ['+30m', 1_800_000], ['+1h', 3_600_000], ['+4h', 14_400_000], ['+12h', 43_200_000]];
-const SIMS: [SimulateKind, string][] = [['typing_drama', '⌨️ typing drama'], ['slow_reply', '🕳️ slow reply (+3h)'], ['burst', '💬 message burst'], ['dead_chat', '🦗 dead chat'], ['left_on_read', '👁️ left on read']];
-const FORCES: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max'];
+const SIMS: [SimulateKind, string][] = [['typing_drama', '⌨️ typing drama'], ['slow_reply', '🕳️ slow reply (+3h)'], ['burst', '💬 message burst'], ['dead_chat', '🦗 dead chat'], ['left_on_read', '👁️ left on read'], ['simp', '💘 simp radar'], ['argument', '🔥 argument (mewing)'], ['derail', '🥣 topic derail'], ['tone', '🥶 tone shift (ok → ok.)']];
+const FORCES: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta'];
 const BOT_LINES = ['k', '67', "wait I'll reply later", 'pizza tonight?', 'lol', 'WHAT IS HAPPENING', 'ok.', 'fine'];
 const TIMING_FIELDS: { key: keyof RoomTimings; label: string; unit: 's' | 'n' }[] = [
   { key: 'typingDramaMs', label: 'typing drama after', unit: 's' }, { key: 'typedDeletedMs', label: 'typed-then-deleted after', unit: 's' },
@@ -120,6 +120,16 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
               <Toggle on={settings.commentary} onClick={() => emit.current?.emit('admin:settings', { commentary: !settings.commentary })}>AI commentary</Toggle>
               <Toggle on={settings.autopilotBots} onClick={() => emit.current?.emit('admin:settings', { autopilotBots: !settings.autopilotBots })}>bot autopilot</Toggle>
             </div>
+            <div className="mt-2 flex gap-2">
+              <Toggle on={settings.chaos} onClick={() => emit.current?.emit('admin:settings', { chaos: !settings.chaos })}>chaos agent</Toggle>
+              <Toggle on={settings.jumpscare} onClick={() => emit.current?.emit('admin:settings', { jumpscare: !settings.jumpscare })}>jumpscares</Toggle>
+            </div>
+            <Field label="rival commentator (argues with the main one)">
+              <select value={settings.rival ?? ''} onChange={(e) => emit.current?.emit('admin:settings', { rival: (e.target.value || null) as PersonaId | null })} className="mt-1 w-full rounded-lg border border-white/10 bg-ink-800 px-3 py-2">
+                <option value="">none</option>
+                {Object.values(PERSONAS).filter((p) => p.id !== settings.persona).map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
+              </select>
+            </Field>
           </Card>
 
           <Card title={`Cooked-o-meter · ${state.cooked}%`}>
@@ -149,6 +159,21 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
                 </form>
               </>
             )}
+          </Card>
+
+          <Card title="Members">
+            <ul className="space-y-2">
+              {state.members.map((m) => (
+                <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-sm">
+                  <span className="min-w-20 font-semibold">{m.name}{m.isBot && <span className="ml-1 text-[10px] text-mute">bot</span>}</span>
+                  <span className="font-mono text-xs text-mute">{m.aura} aura · {m.coins} 🪙</span>
+                  <Btn tone={m.elsewhere ? 'go' : 'mute'} onClick={() => emit.current?.emit('admin:elsewhere', { memberId: m.id, on: !m.elsewhere })}>{m.elsewhere ? 'online elsewhere' : 'offline elsewhere'}</Btn>
+                  <Btn onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 1000 })}>+1k</Btn>
+                  <Btn onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 10000 })}>+10k</Btn>
+                  <Btn tone="mute" onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: -500 })}>-500</Btn>
+                </li>
+              ))}
+            </ul>
           </Card>
 
           <Card title="Stage a moment">

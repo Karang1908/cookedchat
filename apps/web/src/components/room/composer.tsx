@@ -2,15 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BorderBeam } from 'border-beam';
-import { SendHorizontal } from 'lucide-react';
+import { SendHorizontal, X } from 'lucide-react';
 
 interface Props {
   disabled?: boolean;
+  /** shown above the box while replying to a message */
+  replyTo?: { name: string; text: string } | null;
+  onCancelReply?: () => void;
   onSend: (text: string) => Promise<string | null>;
   onTyping: (state: 'start' | 'tick' | 'stop', len: number, cleared?: boolean) => void;
 }
 
-export function Composer({ disabled, onSend, onTyping }: Props) {
+export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping }: Props) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
@@ -64,6 +67,12 @@ export function Composer({ disabled, onSend, onTyping }: Props) {
   return (
     <div className="safe-b relative px-3 pb-3 pt-1 sm:px-5">
       {error && <div className="pop-in absolute -top-7 left-1/2 -translate-x-1/2 rounded-full bg-ember/90 px-3 py-1 text-xs font-semibold">{error}</div>}
+      {replyTo && (
+        <div className="pop-in mb-1.5 flex items-center gap-2 rounded-xl border-l-2 border-blurple bg-ink-800/80 px-3 py-1.5 text-xs text-mute">
+          <span className="min-w-0 flex-1 truncate">Replying to <b className="text-blurple-soft">{replyTo.name}</b>: {replyTo.text}</span>
+          <button onClick={onCancelReply} aria-label="Cancel reply" className="rounded p-0.5 hover:text-white"><X size={14} /></button>
+        </div>
+      )}
       <BorderBeam size="line" colorVariant="ocean" active={focused} strength={0.9}>
         <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-ink-800 p-2 pl-4" style={{ borderRadius: 16 }}>
           <textarea
