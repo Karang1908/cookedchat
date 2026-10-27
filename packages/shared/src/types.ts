@@ -19,6 +19,7 @@ export type TriggerKind =
   | 'scouter'
   | 'mog'
   | 'lore'
+  | 'tiers'
   | 'recap'
   | 'awards'
   | 'wrapped'
@@ -239,6 +240,8 @@ export interface ChatMessage {
   ohio?: number;
   /** which persona spoke (AI messages), so rival commentators can differ */
   persona?: PersonaId;
+  /** optional trending GIF (GIPHY, only when the server has a key) attached to an AI reaction */
+  gif?: string;
 }
 
 export interface AuraEntry {

@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { BorderBeam } from 'border-beam';
 import { ThinkingOrb } from 'thinking-orbs';
 import { ArrowDown, Check, CornerUpLeft, ImagePlus, Languages, Pencil, SmilePlus, Trash2, X } from 'lucide-react';
-import { PERSONAS, isDry } from '@cooked/shared';
+import { PERSONAS, STICKER, isDry } from '@cooked/shared';
 import type { ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { clockTime } from '@/lib/format';
 import { useRoomActions } from '@/lib/room-actions';
@@ -34,7 +34,7 @@ const TRIGGER_LABEL: Record<string, string> = {
   burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am',
   cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', mewing: 'mewing', simp_radar: 'simp radar',
   missing: 'missing', owl: 'the owl', betrayal: 'betrayal', class_change: 'evolution', scouter: 'scouter', mog: 'mog', lore: 'lore', chaos: 'chaos agent',
-  weather: 'forecast', replay: 'instant replay', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
+  weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
 };
 
 export function MessageList({ messages, members, meId, settings, typingIds, thinking, onEdit, onDelete, onSeen, onReact, onReply, onProfile }: Props) {
@@ -268,16 +268,23 @@ function Reactions({ m, meId, onReact }: { m: ChatMessage; meId?: string; onReac
 
 function AiCard({ m, latest, onReact, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; meId?: string }) {
   const persona = PERSONAS[m.persona ?? 'gremlin'];
+  const sticker = m.trigger ? STICKER[m.trigger] : undefined;
+  const gif = m.gif && isGiphy(m.gif) ? m.gif : undefined;
   const card = (
     <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-ink-800/95 px-4 py-3" style={{ borderRadius: 16 }}>
       <span className="text-2xl leading-none" aria-hidden>{persona.emoji}</span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-magenta">
           {persona.label}
           {m.trigger && <span className="text-mute"> · {TRIGGER_LABEL[m.trigger] ?? m.trigger}</span>}
         </div>
         <p className="mt-0.5 break-words text-base font-medium leading-snug">{m.text}</p>
+        {gif && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={gif} alt="reaction gif" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="mt-2 max-h-44 rounded-lg border border-white/10" />
+        )}
       </div>
+      {sticker && <span className="-mr-1 -mt-1 shrink-0 -rotate-6 text-5xl leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" aria-hidden>{sticker}</span>}
     </div>
   );
   return (
@@ -292,4 +299,14 @@ function AiCard({ m, latest, onReact, meId }: { m: ChatMessage; latest: boolean;
       <Reactions m={m} meId={meId} onReact={onReact} />
     </div>
   );
+}
+
+/** the server only attaches https giphy.com urls; check again so a bad value can never make the page load another host */
+function isGiphy(u: string): boolean {
+  try {
+    const x = new URL(u);
+    return x.protocol === 'https:' && (x.hostname === 'giphy.com' || x.hostname.endsWith('.giphy.com'));
+  } catch {
+    return false;
+  }
 }

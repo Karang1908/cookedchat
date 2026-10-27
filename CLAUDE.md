@@ -55,6 +55,8 @@ pnpm --filter @cooked/web typecheck
 - **Lore is privacy-sensitive**: editing or deleting a message removes its lore (`Memory.forget`) so deleted text never resurfaces as an inside joke.
 - **LLM-backed helpers (`writer.generate`)**: translators, memes, recap cliffhanger and the battle judge all fall back to rule-based output, and any model output touching `OFF_LIMITS` is dropped. Rival commentators (`settings.rival`) double the LLM calls per roast; instant triggers use canned retorts (`RIVAL_RETORTS`).
 - **Share images are drawn client-side** on a canvas (`lib/share-card.ts`, 1080px PNG) and shared with `navigator.share` or downloaded. Fonts must be loaded first (`ensureFonts`).
+- **Timers in effects**: keep UI hide-timers in a `ref`, not in an effect cleanup. The messages array changes constantly (GIFs, reactions); a cleanup cancels the timer and an early return then never re-arms it (this hid the BREAKING banner forever once).
+- **GIFs** are optional (`GIPHY_API_KEY`, `GIPHY_BASE_URL` for tests), attached *after* the roast is posted, and only https `giphy.com` URLs are accepted (server and client both check). Stickers are plain emoji tiles keyed by trigger (`STICKER`).
 - **Derived data**: `Member.stats` (class, creature, tier, rizz, power) is recomputed by `Room.recompute()` and flushed at most once per tick. Raw counters live in `Room.stats` and are persisted in `rooms.extras` (5s debounce); message extras (reactions, ohio, cards) in `messages.extra`. Migrations 0001+0002 must both be applied.
 
 ## Conventions

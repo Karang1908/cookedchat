@@ -5,6 +5,7 @@ import type { Config } from './config.js';
 import { Engine } from './engine.js';
 import { GameLoop } from './game-loop.js';
 import { HealthController } from './health.controller.js';
+import { GiphyFinder } from './features/gif.js';
 import { LlmCommentator, buildRouter } from './llm/factory.js';
 import type { LlmRouter } from './llm/router.js';
 import { RoomsService } from './rooms.service.js';
@@ -22,7 +23,7 @@ const ROUTER = Symbol('ROUTER');
     { provide: STORE, useFactory: (c: Config): Store => (c.databaseUrl ? new PgStore(c.databaseUrl, c.databaseSsl) : new NullStore()), inject: [CONFIG] },
     { provide: ROUTER, useFactory: (c: Config) => buildRouter(c), inject: [CONFIG] },
     SocketBus,
-    { provide: Engine, useFactory: (bus: SocketBus, store: Store, router: LlmRouter) => new Engine({ bus, store, writer: new LlmCommentator(router) }), inject: [SocketBus, STORE, ROUTER] },
+    { provide: Engine, useFactory: (bus: SocketBus, store: Store, router: LlmRouter, c: Config) => new Engine({ bus, store, writer: new LlmCommentator(router), gifs: c.giphyKey ? new GiphyFinder(c.giphyKey, fetch, c.giphyBase) : undefined }), inject: [SocketBus, STORE, ROUTER, CONFIG] },
     RoomsService,
     GameLoop,
     ChatGateway,

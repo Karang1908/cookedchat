@@ -62,7 +62,7 @@ export class PgStore implements Store {
   }
 
   saveMessage(code: string, m: ChatMessage) {
-    const extra = { reactions: m.reactions, ohio: m.ohio, persona: m.persona, replyToId: m.replyToId, card: m.card };
+    const extra = { reactions: m.reactions, ohio: m.ohio, persona: m.persona, replyToId: m.replyToId, card: m.card, gif: m.gif };
     this.enqueue(
       `insert into messages (id, room_code, author_id, kind, text, at, edited, deleted, ai_reactions, reply_to, trigger, extra)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
@@ -117,7 +117,7 @@ export class PgStore implements Store {
       room.messages = msgs.rows.reverse().map((m) => ({
         id: m.id, authorId: m.author_id, kind: m.kind, text: m.text, at: Number(m.at), edited: m.edited, deleted: m.deleted,
         aiReactions: m.ai_reactions, replyTo: m.reply_to ?? undefined, trigger: m.trigger ?? undefined,
-        reactions: m.extra?.reactions ?? {}, ohio: m.extra?.ohio, persona: m.extra?.persona, replyToId: m.extra?.replyToId, card: m.extra?.card,
+        reactions: m.extra?.reactions ?? {}, ohio: m.extra?.ohio, persona: m.extra?.persona, replyToId: m.extra?.replyToId, card: m.extra?.card, gif: m.extra?.gif,
       }));
       const led = await this.pool.query('select * from aura_ledger where room_code=$1 order by at desc limit 50', [code]);
       room.ledger = led.rows.reverse().map((e) => ({ id: e.id, memberId: e.member_id, delta: e.delta, reason: e.reason, messageId: e.message_id ?? undefined, receipt: e.receipt, at: Number(e.at) }));

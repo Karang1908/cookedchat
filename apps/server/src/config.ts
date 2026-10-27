@@ -9,6 +9,8 @@ export interface Config {
   groqBase: string;
   ollamaKey: string | null;
   ollamaBase: string;
+  giphyKey: string | null;
+  giphyBase: string;
   llmOrder: string[];
   attemptTimeoutMs: number;
   deadlineMs: number;
@@ -27,6 +29,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     groqBase: env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
     ollamaKey: env.OLLAMA_API_KEY || null,
     ollamaBase: env.OLLAMA_BASE_URL || 'https://ollama.com',
+    giphyKey: env.GIPHY_API_KEY || null,
+    giphyBase: env.GIPHY_BASE_URL || 'https://api.giphy.com',
     llmOrder: list(env.LLM_ORDER).length ? list(env.LLM_ORDER) : ['groq-120b', 'groq-20b', 'ollama'],
     attemptTimeoutMs: Number(env.LLM_ATTEMPT_TIMEOUT_MS ?? 2500),
     deadlineMs: Number(env.LLM_DEADLINE_MS ?? 3500),

@@ -15,6 +15,7 @@ import { CookedMeter } from '../cooked-meter';
 import { FxLayer } from '../fx-layer';
 import { QrDialog } from '../qr-dialog';
 import { AuraPanel } from './aura-panel';
+import { BreakingBanner } from './breaking-banner';
 import { Composer } from './composer';
 import { Gameplay } from './gameplay';
 import { GamesPanel } from './games-panel';
@@ -169,6 +170,7 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
       </div>
       <div className={clsx('fry-noise', stage >= 3 && 'on')} aria-hidden />
       <FxLayer />
+      <BreakingBanner messages={state.messages} ready={live} />
       <QrDialog code={code} open={qrOpen} onClose={() => setQrOpen(false)} />
       <ProfileDialog member={state.members.find((m) => m.id === profileId) ?? null} onClose={() => setProfileId(null)} />
       {midnight && <div className="pointer-events-none fixed inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(30_10_80/0.45))]" aria-hidden />}

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import {
-  AURA_RULES, AVATARS, CLASSES, PERSONAS, RIVAL_RETORTS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
+  AURA_RULES, AVATARS, CLASSES, GIF_QUERY, PERSONAS, RIVAL_RETORTS, TIERS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
   cannedLine, capsRatio, decayCooked, findFood, fmtDuration, is67, isDry, isReplyLater, ohioScore, pushCooked, shouldMeltdown,
 } from '@cooked/shared';
 import type {
@@ -11,6 +11,7 @@ import type { RoomBus } from './bus.js';
 import { analyze } from './features/behavior.js';
 import { Games } from './features/games.js';
 import { Memory } from './features/memory.js';
+import type { GifFinder } from './features/gif.js';
 import { tickBehavior } from './features/ticks.js';
 import type { CommentContext } from './llm/prompt.js';
 import { Room } from './room.js';
@@ -55,7 +56,7 @@ export class Engine {
   readonly games: Games = new Games(this);
   readonly memory: Memory = new Memory(this);
 
-  constructor(readonly d: { bus: RoomBus; store: Store; writer: CommentWriter; rng?: () => number }) {}
+  constructor(readonly d: { bus: RoomBus; store: Store; writer: CommentWriter; rng?: () => number; gifs?: GifFinder }) {}
 
   rng = () => (this.d.rng ?? Math.random)();
 
@@ -393,7 +394,8 @@ export class Engine {
     }
     line ??= cannedLine(c.kind, { name, text: c.text, ...c.vars }, () => this.rng());
 
-    this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind });
+    const posted = this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind });
+    this.attachGif(room, posted, c.kind);
     if (settings.rival && settings.rival !== settings.persona) await this.rivalReply(room, c, name, line, INSTANT.has(c.kind));
     const emoji = REACTION[c.kind];
     const target = c.targetId ? room.messages.find((m) => m.id === c.targetId) : undefined;
@@ -402,6 +404,17 @@ export class Engine {
       this.update(room, target);
     }
     if (c.kind !== 'cooked_max') this.playEffects(room, c.kind);
+  }
+
+  /** fire-and-forget: the roast is already on screen, the GIF is attached when (if) it arrives */
+  private attachGif(room: Room, msg: ChatMessage, kind: TriggerKind): void {
+    const q = GIF_QUERY[kind];
+    if (!q || !this.d.gifs) return;
+    this.d.gifs.find(q).then((url) => {
+      if (!url) return;
+      msg.gif = url;
+      this.update(room, msg);
+    }).catch(() => {});
   }
 
   /** the second persona answers the first. LLM when it can, canned retort otherwise. */
@@ -529,6 +542,7 @@ export class Engine {
       }
     }
 
+    this.dailyTiers(room);
     tickBehavior(this, room);
     this.games.tick(room);
 
@@ -537,6 +551,19 @@ export class Engine {
       room.lastExtrasSaveAt = realNow;
       this.d.store.saveExtras(room);
     }
+  }
+
+  /** "Sigma / Beta tier: daily status". Announced when the room's local day rolls over and there is something to rank. */
+  private dailyTiers(room: Room): void {
+    const day = room.localDayKey();
+    const prev = room.lastDayKey;
+    room.lastDayKey = day;
+    if (!prev || prev === day || !room.settings.commentary) return;
+    const ranked = [...room.members.values()].filter((m) => m.stats.messages > 0).sort((a, b) => b.aura - a.aura);
+    if (ranked.length < 2) return;
+    const line = `Daily status update: ${ranked.map((m) => `${m.name} ${TIERS[m.stats.tier].emoji} ${TIERS[m.stats.tier].name}`).join(', ')}`;
+    this.postAi(room, line, { trigger: 'tiers' });
+    this.playEffects(room, 'class_change');
   }
 
   // ---------------------------------------------------------------- admin

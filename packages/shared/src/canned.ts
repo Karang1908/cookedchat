@@ -41,6 +41,7 @@ export const CANNED: Record<TriggerKind, string[]> = {
   vote_result: ['the votes are in 🗿', 'chat has spoken 🗿'],
   battle_result: ['the judges have decided 🎙️'],
   bet_result: ['the market has settled 💰'],
+  tiers: ['daily status update: the hierarchy has been recalculated 🗿'],
   recap: ['previously on this group chat… 📺'],
   awards: ['and the awards go to… 🏆'],
   wrapped: ['your Brainrot Wrapped is ready 🎁'],
