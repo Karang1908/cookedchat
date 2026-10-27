@@ -26,6 +26,10 @@ pnpm --filter @cooked/web typecheck
 
 `build`/`dev` in both apps run `pre*` hooks that build `@cooked/shared` first. If you see "cannot find module '@cooked/shared'", that is why.
 
+## End-to-end tests
+
+`e2e/` has real-client suites (Socket.IO + Playwright with a desktop player, a phone player and the admin) against a stack with a mock LLM/GIPHY and a throwaway Postgres. See `e2e/README.md`. Run them after changing anything in the chat flow; they found most of the UI bugs listed below (unit tests cannot see stacking contexts, overflow or timers).
+
 ## Landmines (each one cost time)
 
 - **Nest 12 is ESM-only.** `apps/server` is `"type": "module"`, tsconfig `NodeNext`: relative imports need the `.js` suffix. Nest's CLI is not used; `tsc` + `node`.
@@ -41,7 +45,7 @@ pnpm --filter @cooked/web typecheck
 - **Audio is gesture-gated on phones.** The join gate's button calls `unlockAudio()`. Sounds are synthesized (WebAudio), approximations of the memes; real clips are opt-in via `NEXT_PUBLIC_SOUND_CLIPS`. The Subway Surfers sidebar is a neutral placeholder (IP); `NEXT_PUBLIC_GAMEPLAY_SRC` swaps in a video.
 - **WebGL cost**: one R3F canvas (goblin) + one MetalFx context on the landing page. Do not add per-message 3D. Headless Chromium with `--enable-unsafe-swiftshader` takes ~20s to compile shaders; do not use that flag in UI tests.
 - Bots (Aman, Riya, Dev) share names with likely players; they carry a BOT badge.
-- **Staged moments (`Engine.simulate`) must only speak as bots.** Using "any other member" posts words as real players.
+- **Staged moments (`Engine.simulate`) must only speak as bots.** Using "any other member" posts words as real players. They also bypass the AI's cooldown and dice (`Engine.staging`): an admin clicking "simp radar" on stage must always get a roast, not a 10% silence.
 - **Equal PRIORITY ties go to the first hit** (`detect()` before `analyze()`). Give the funnier trigger the higher number (derail 6 > fanum 5: "cereal" is both).
 - **Mobile layout: the room grid must be `grid-cols-[minmax(0,1fr)]`.** An `auto` track sizes to a child's nowrap min-content (e.g. a long reply banner) and pushes the Send button off-screen. Check `document.documentElement.scrollWidth === innerWidth` in phone tests.
 - **Message toolbar sits inside the row** (overlapping the bubble's top edge). Absolutely positioning it outside the bubble overflowed phones.

@@ -60,6 +60,9 @@ export class Engine {
 
   rng = () => (this.d.rng ?? Math.random)();
 
+  /** >0 while an admin-staged moment runs: staged moments always get their roast (no cooldown, no dice) */
+  private staging = 0;
+
   // ---------------------------------------------------------------- members
 
   join(room: Room, p: JoinPayload, socketId: string): Ack<{ member: Member }> {
@@ -374,6 +377,7 @@ export class Engine {
     const { settings } = room;
     if (!settings.commentary) return;
     const prio = PRIORITY[c.kind] ?? 3;
+    force ||= this.staging > 0;
     if (!force && prio < 10 && Date.now() - room.lastCommentAt < settings.timings.commentCooldownMs) return;
     if (!force && this.rng() >= this.chance(prio)) return;
     room.lastCommentAt = Date.now(); // claim the slot before awaiting so concurrent triggers back off
@@ -645,6 +649,15 @@ export class Engine {
 
   /** Stage a moment on cue by faking the inputs the detectors read. Returns when the AI has finished reacting. */
   async simulate(room: Room, kind: SimulateKind, memberId?: string): Promise<string | null> {
+    this.staging++;
+    try {
+      return await this.runSimulation(room, kind, memberId);
+    } finally {
+      this.staging--;
+    }
+  }
+
+  private async runSimulation(room: Room, kind: SimulateKind, memberId?: string): Promise<string | null> {
     this.addBots(room);
     const members = [...room.members.values()];
     const actor = (memberId && room.members.get(memberId)) || members.find((m) => m.isBot)!;

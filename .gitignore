@@ -6,3 +6,4 @@ dist
 *.tsbuildinfo
 .DS_Store
 next-env.d.ts
+e2e/shots

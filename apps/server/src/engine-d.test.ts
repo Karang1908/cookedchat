@@ -118,3 +118,24 @@ test('stickers and breaking-news sets only reference real trigger kinds', () => 
   for (const k of Object.keys(STICKER)) assert.ok(STICKER[k as keyof typeof STICKER]!.length > 0, k);
   assert.ok(BREAKING.has('mog') && BREAKING.has('tiers') && !BREAKING.has('dry_reply'));
 });
+
+test('staged moments always land, even when the dice and the cooldown say stay quiet; normal chat still obeys them', async () => {
+  const bus = new FakeBus();
+  const writer = new FakeWriter();
+  const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0.99 });
+  const room = new Room('TEST', 0);
+  const add = (id: string, name: string) => (engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`), id);
+  const a = add('a', 'Aman');
+  const r = engine.send(room, a, 'k');
+  assert.ok(r.ok);
+  await r.done;
+  assert.equal(room.messages.filter((m) => m.kind === 'ai').length, 0, 'normal chat: rng 0.99 means the AI stays quiet');
+  room.lastCommentAt = Date.now();
+  await engine.simulate(room, 'simp', 'bot-aman');
+  assert.ok(writer.calls.some((c) => c.kind === 'simp_radar'), 'the staged simp radar still got its roast');
+  const before = writer.calls.length;
+  const r2 = engine.send(room, a, 'ok');
+  assert.ok(r2.ok);
+  await r2.done;
+  assert.equal(writer.calls.length, before, 'staging is over: the dice apply again');
+});
