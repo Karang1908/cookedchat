@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cookedchat-server
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @cooked/server build
+    startCommand: pnpm --filter @cooked/server start
+    healthCheckPath: /health
+    envVars:
+      - key: ADMIN_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OLLAMA_API_KEY
+        sync: false

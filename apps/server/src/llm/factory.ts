@@ -1,0 +1,33 @@
+import { Logger } from '@nestjs/common';
+import type { Config } from '../config.js';
+import type { CommentContext } from './prompt.js';
+import { buildMessages, sanitizeLine } from './prompt.js';
+import { ollamaProvider, openAiCompatProvider } from './providers.js';
+import type { LlmProvider } from './providers.js';
+import { LlmRouter } from './router.js';
+import type { CommentWriter } from '../engine.js';
+
+export function buildRouter(c: Config): LlmRouter {
+  const log = new Logger('LlmFactory');
+  const all: Record<string, (() => LlmProvider) | null> = {
+    'groq-120b': c.groqKey ? () => openAiCompatProvider({ name: 'groq-120b', baseUrl: c.groqBase, apiKey: c.groqKey!, model: 'openai/gpt-oss-120b', reasoningEffort: 'low' }) : null,
+    'groq-20b': c.groqKey ? () => openAiCompatProvider({ name: 'groq-20b', baseUrl: c.groqBase, apiKey: c.groqKey!, model: 'openai/gpt-oss-20b', reasoningEffort: 'low' }) : null,
+    ollama: c.ollamaKey ? () => ollamaProvider({ name: 'ollama', baseUrl: c.ollamaBase, apiKey: c.ollamaKey!, model: 'gpt-oss:120b' }) : null,
+  };
+  const providers = c.llmOrder.flatMap((n) => {
+    const make = all[n];
+    return make ? [make()] : [];
+  });
+  if (!providers.length) log.warn('no LLM provider configured (set GROQ_API_KEY and/or OLLAMA_API_KEY): canned lines only');
+  else log.log(`LLM chain: ${providers.map((p) => p.name).join(' -> ')} -> canned`);
+  return new LlmRouter(providers, { attemptTimeoutMs: c.attemptTimeoutMs, deadlineMs: c.deadlineMs, defaultCooldownMs: 30_000 });
+}
+
+export class LlmCommentator implements CommentWriter {
+  constructor(private readonly router: LlmRouter) {}
+
+  async write(ctx: CommentContext): Promise<string | null> {
+    const r = await this.router.complete(buildMessages(ctx));
+    return r ? sanitizeLine(r.text) : null;
+  }
+}

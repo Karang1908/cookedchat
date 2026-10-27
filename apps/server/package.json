@@ -1,0 +1,32 @@
+{
+  "name": "@cooked/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild": "pnpm --filter @cooked/shared build",
+    "build": "tsc -p tsconfig.json",
+    "predev": "pnpm --filter @cooked/shared build && tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json -w --preserveWatchOutput & node --watch --env-file-if-exists=.env dist/main.js",
+    "start": "node dist/main.js",
+    "test": "node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": {
+    "@cooked/shared": "workspace:*",
+    "@nestjs/common": "^12.3.2",
+    "@nestjs/core": "^12.3.2",
+    "@nestjs/platform-express": "^12.3.2",
+    "@nestjs/platform-socket.io": "^12.3.2",
+    "@nestjs/websockets": "^12.3.2",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/pg": "^8.23.1",
+    "socket.io-client": "^4.8.4",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "cookedchat",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "build:shared": "pnpm --filter @cooked/shared build",
+    "dev:server": "pnpm --filter @cooked/server dev",
+    "dev:web": "pnpm --filter @cooked/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  },
+  "engines": { "node": ">=20.11" }
+}
