@@ -31,7 +31,13 @@ export class FakeWriter implements CommentWriter {
   reply: string | null = 'LLM LINE';
   async write(ctx: CommentContext) {
     this.calls.push(ctx);
-    return this.reply;
+    return this.reply === null ? null : { text: this.reply, model: ctx.prefer === 'ollama' ? 'ollama' : 'groq-120b' };
+  }
+  said: { system: string; user: string; prefer?: 'groq' | 'ollama' }[] = [];
+  sayReply: string | null = null;
+  async say(p: { system: string; user: string; prefer?: 'groq' | 'ollama' }) {
+    this.said.push(p);
+    return this.sayReply === null ? null : { text: `${this.sayReply} (${p.prefer})`, model: p.prefer === 'ollama' ? 'ollama' : 'groq-120b' };
   }
   generated: { system: string; user: string }[] = [];
   generateReply: string | null = null;
@@ -47,6 +53,8 @@ export function setup() {
   const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0 });
   const room = new Room('TEST', 0);
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
+  // most tests check what a single message triggers; the speaking budget has its own tests (engine-e)
+  room.settings.aiEvery = 0;
   const add = (id: string, name: string) => {
     engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`);
     return id;

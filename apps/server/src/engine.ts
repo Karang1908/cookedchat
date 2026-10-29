@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import {
-  AURA_RULES, AVATARS, CLASSES, GIF_QUERY, PERSONAS, RIVAL_RETORTS, TIERS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
+  AURA_RULES, AVATARS, CLASSES, DUEL_CLOSERS, DUEL_OPENERS, DUEL_REPLIES, GIF_QUERY, PERSONAS, RIVAL_RETORTS, SIDE_LABEL, TIERS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
   cannedLine, capsRatio, decayCooked, findFood, fmtDuration, is67, isDry, isReplyLater, ohioScore, pushCooked, shouldMeltdown,
 } from '@cooked/shared';
 import type {
@@ -14,6 +14,7 @@ import { Memory } from './features/memory.js';
 import type { GifFinder } from './features/gif.js';
 import { tickBehavior } from './features/ticks.js';
 import type { CommentContext } from './llm/prompt.js';
+import { sanitizeLine } from './llm/prompt.js';
 import { Room } from './room.js';
 import { applySettingsPatch } from './settings.js';
 import type { SettingsPatch } from './settings.js';
@@ -21,9 +22,17 @@ import type { Store } from './store.js';
 import { EFFECTS, INSTANT, PRIORITY, REACTION } from './tables.js';
 import type { Hit } from './tables.js';
 
+/** a line the AI will post, and which provider wrote it */
+export interface Line {
+  text: string;
+  model: string;
+}
+
 export interface CommentWriter {
   /** one safe chat line, or null to fall back to a canned one */
-  write(ctx: CommentContext): Promise<string | null>;
+  write(ctx: CommentContext): Promise<Line | null>;
+  /** one safe line from a free-form prompt (duel banter); null = canned */
+  say?(p: { system: string; user: string; prefer?: 'groq' | 'ollama' }): Promise<Line | null>;
   /** free-form text for judges, translators, captions, recaps; null = use the rule-based fallback */
   generate?(p: { system: string; user: string }): Promise<string | null>;
 }
@@ -142,6 +151,8 @@ export class Engine {
     };
     this.push(room, msg);
     room.deadChatFired = false;
+    room.humanSinceAi++;
+    room.duelLullFired = false;
 
     const burst = room.userMessages().filter((m) => m.authorId === memberId && now - m.at <= t.burstWindowMs).length;
     const live = room.userMessages().filter((m) => now - m.at <= 120_000).length >= 3;
@@ -373,41 +384,72 @@ export class Engine {
     return prio >= 8 ? 1 : prio >= 6 ? 0.9 : prio >= 5 ? 0.8 : 0.35;
   }
 
-  async comment(room: Room, c: CommentRequest, force = false): Promise<void> {
-    const { settings } = room;
-    if (!settings.commentary) return;
-    const prio = PRIORITY[c.kind] ?? 3;
-    force ||= this.staging > 0;
-    if (!force && prio < 10 && Date.now() - room.lastCommentAt < settings.timings.commentCooldownMs) return;
-    if (!force && this.rng() >= this.chance(prio)) return;
-    room.lastCommentAt = Date.now(); // claim the slot before awaiting so concurrent triggers back off
+  /**
+   * The AI's speaking budget. Ordinary triggers need `aiEvery` user messages since the AI last spoke, core jokes
+   * (priority 8) half that, big moments (9+) one. System events (`force`) skip the dice and the cooldown but still never
+   * make two AI turns in a row. Admin-staged moments skip everything.
+   */
+  mayTakeTurn(room: Room, prio: number, force: boolean): boolean {
+    if (this.staging > 0) return true;
+    if (force || prio >= 9) return room.humanSinceAi >= 1;
+    const n = room.settings.aiEvery;
+    return room.humanSinceAi >= Math.max(1, prio >= 8 ? Math.ceil(n / 2) : n);
+  }
 
-    const name = c.member?.name ?? 'chat';
-    let line: string | null = null;
-    if (!INSTANT.has(c.kind)) {
-      this.d.bus.emit(room.code, 'ai:thinking', true);
-      try {
-        line = await this.d.writer.write({
-          kind: c.kind, name, text: c.text, fact: c.fact, settings,
-          recent: room.userMessages().slice(-6).map((m) => ({ name: room.members.get(m.authorId!)?.name ?? '?', text: m.text })),
-          midnight: this.isMidnight(room),
-        });
-      } finally {
-        this.d.bus.emit(room.code, 'ai:thinking', false);
-      }
-    }
-    line ??= cannedLine(c.kind, { name, text: c.text, ...c.vars }, () => this.rng());
-
-    const posted = this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind });
-    this.attachGif(room, posted, c.kind);
-    if (settings.rival && settings.rival !== settings.persona) await this.rivalReply(room, c, name, line, INSTANT.has(c.kind));
+  /** the AI noticed but is not taking a turn: an emoji on the message instead of another chat line */
+  private quietReact(room: Room, c: CommentRequest): void {
     const emoji = REACTION[c.kind];
     const target = c.targetId ? room.messages.find((m) => m.id === c.targetId) : undefined;
     if (emoji && target && !target.aiReactions.includes(emoji)) {
       target.aiReactions.push(emoji);
       this.update(room, target);
     }
+  }
+
+  /** `sameTurn`: this line belongs to an AI turn that just started (e.g. the roast under an instant-replay card) */
+  async comment(room: Room, c: CommentRequest, force = false, sameTurn = false): Promise<void> {
+    const { settings } = room;
+    if (!settings.commentary) return;
+    const prio = PRIORITY[c.kind] ?? 3;
+    const staged = this.staging > 0;
+    const gated =
+      (!sameTurn && !this.mayTakeTurn(room, prio, force)) ||
+      (!force && !staged && prio < 10 && Date.now() - room.lastCommentAt < settings.timings.commentCooldownMs) ||
+      (!force && !staged && this.rng() >= this.chance(prio));
+    if (gated) return this.quietReact(room, c);
+    room.lastCommentAt = Date.now(); // claim the slot before awaiting so concurrent triggers back off
+    room.humanSinceAi = 0;
+
+    const name = c.member?.name ?? 'chat';
+    const duel = settings.duel;
+    let line: Line | null = null;
+    if (!INSTANT.has(c.kind)) {
+      this.d.bus.emit(room.code, 'ai:thinking', true);
+      try {
+        line = await this.d.writer.write({
+          kind: c.kind, name, text: c.text, fact: c.fact, settings,
+          recent: room.userMessages().slice(-6).map((m) => ({ name: room.members.get(m.authorId!)?.name ?? '?', text: m.text })),
+          midnight: this.isMidnight(room), prefer: duel ? 'groq' : undefined,
+        });
+      } finally {
+        this.d.bus.emit(room.code, 'ai:thinking', false);
+      }
+    }
+    const text = line?.text ?? cannedLine(c.kind, { name, text: c.text, ...c.vars }, () => this.rng());
+
+    const posted = this.postAi(room, text, { replyTo: c.targetId, trigger: c.kind, model: line?.model ?? 'canned', side: duel ? 'groq' : undefined });
+    this.attachGif(room, posted, c.kind);
+    const rival = this.rivalOf(settings);
+    if (rival) await this.rivalReply(room, c, name, text, INSTANT.has(c.kind), rival);
+    this.quietReact(room, c);
     if (c.kind !== 'cooked_max') this.playEffects(room, c.kind);
+  }
+
+  /** the second voice: the configured rival, or in a duel a contrasting persona so Groq and Ollama never sound alike */
+  rivalOf(settings: Room['settings']): PersonaId | null {
+    if (settings.rival && settings.rival !== settings.persona) return settings.rival;
+    if (settings.duel) return settings.persona === 'boomer' ? 'gremlin' : 'boomer';
+    return null;
   }
 
   /** fire-and-forget: the roast is already on screen, the GIF is attached when (if) it arrives */
@@ -421,39 +463,88 @@ export class Engine {
     }).catch(() => {});
   }
 
-  /** the second persona answers the first. LLM when it can, canned retort otherwise. */
-  private async rivalReply(room: Room, c: CommentRequest, name: string, firstLine: string, instant: boolean): Promise<void> {
-    const rival = room.settings.rival!;
-    let line: string | null = null;
+  /** the second persona answers the first. LLM when it can, canned retort otherwise. In a duel it runs on Ollama. */
+  private async rivalReply(room: Room, c: CommentRequest, name: string, firstLine: string, instant: boolean, rival: PersonaId): Promise<void> {
+    const duel = room.settings.duel;
+    let line: Line | null = null;
     if (!instant) {
       this.d.bus.emit(room.code, 'ai:thinking', true);
       try {
         line = await this.d.writer.write({
           kind: c.kind, name, text: c.text, fact: c.fact, settings: { ...room.settings, persona: rival },
           recent: room.userMessages().slice(-4).map((m) => ({ name: room.members.get(m.authorId!)?.name ?? '?', text: m.text })),
-          midnight: this.isMidnight(room), rivalOf: { label: PERSONAS[room.settings.persona].label, line: firstLine },
+          midnight: this.isMidnight(room), rivalOf: { label: PERSONAS[room.settings.persona].label, line: firstLine }, prefer: duel ? 'ollama' : undefined,
         });
       } finally {
         this.d.bus.emit(room.code, 'ai:thinking', false);
       }
     }
     const pool = RIVAL_RETORTS[rival];
-    line ??= pool[Math.floor(this.rng() * pool.length)]!;
-    this.postAi(room, line, { replyTo: c.targetId, trigger: c.kind, persona: rival });
+    this.postAi(room, line?.text ?? pool[Math.floor(this.rng() * pool.length)]!, { replyTo: c.targetId, trigger: c.kind, persona: rival, model: line?.model ?? 'canned', side: duel ? 'ollama' : undefined });
   }
 
-  postAi(room: Room, text: string, o: { replyTo?: string; trigger?: TriggerKind; persona?: PersonaId } = {}): ChatMessage {
+  /**
+   * Duel rooms, during a lull: the two AIs roast EACH OTHER (opener on Groq, comeback on Ollama, closer on Groq).
+   * Once per lull, and only after a human spoke, so it never loops by itself.
+   */
+  async duelBanter(room: Room, forced = false): Promise<void> {
+    const s = room.settings;
+    // a forced exchange (admin click) works even with the duel off, using the duel's default rival
+    const rival = this.rivalOf(forced ? { ...s, duel: true } : s);
+    if (!s.commentary || !rival || (!forced && (!s.duel || room.duelLullFired || !this.mayTakeTurn(room, 9, true)))) return;
+    room.duelLullFired = true;
+    room.humanSinceAi = 0;
+    room.lastCommentAt = Date.now();
+    const seats = [
+      { persona: s.persona, side: 'groq' as const, other: rival, otherSide: 'ollama' as const, pool: DUEL_OPENERS },
+      { persona: rival, side: 'ollama' as const, other: s.persona, otherSide: 'groq' as const, pool: DUEL_REPLIES },
+      { persona: s.persona, side: 'groq' as const, other: rival, otherSide: 'ollama' as const, pool: DUEL_CLOSERS },
+    ];
+    const recent = room.userMessages().slice(-4).map((m) => `${room.members.get(m.authorId!)?.name ?? '?'}: ${m.text.slice(0, 100)}`).join('\n');
+    let last = '';
+    for (const [i, seat] of seats.entries()) {
+      const me = PERSONAS[seat.persona];
+      const them = PERSONAS[seat.other];
+      let line: Line | null = null;
+      if (this.d.writer.say) {
+        this.d.bus.emit(room.code, 'ai:thinking', true);
+        try {
+          line = await this.d.writer.say({
+            prefer: seat.side,
+            system: [
+              `You are ${me.label} (${me.voice}), an AI running on ${SIDE_LABEL[seat.side]}, inside a group chat.`,
+              `You are in a roast battle with the OTHER AI in this chat: ${them.label}, running on ${SIDE_LABEL[seat.otherSide]}.`,
+              'Roast the other AI (its model, its speed, its takes, its vibe), never the humans and never anyone\'s identity.',
+              'Write exactly ONE line, at most 140 characters, plain text, at most 2 emoji.',
+            ].join('\n'),
+            user: i === 0 ? `The humans went quiet. Open the roast battle.${recent ? `\nRecent chat:\n${recent}` : ''}` : `The other AI just said: "${last}". ${i === 2 ? 'Finish it.' : 'Clap back.'}`,
+          });
+        } finally {
+          this.d.bus.emit(room.code, 'ai:thinking', false);
+        }
+      }
+      const canned = seat.pool[Math.floor(this.rng() * seat.pool.length)]!
+        .replaceAll('{them}', SIDE_LABEL[seat.otherSide]).replaceAll('{me}', SIDE_LABEL[seat.side]).replaceAll('{other}', them.label);
+      last = (line && sanitizeLine(line.text)) || canned;
+      this.postAi(room, last, { trigger: 'duel', persona: seat.persona, model: line?.model ?? 'canned', side: seat.side });
+    }
+    this.playEffects(room, 'duel');
+  }
+
+  postAi(room: Room, text: string, o: { replyTo?: string; trigger?: TriggerKind; persona?: PersonaId; model?: string; side?: 'groq' | 'ollama' } = {}): ChatMessage {
     const m: ChatMessage = {
       id: randomUUID(), authorId: null, kind: 'ai', text, at: room.now(), edited: false, deleted: false, aiReactions: [], reactions: {},
-      replyTo: o.replyTo, trigger: o.trigger, persona: o.persona ?? room.settings.persona,
+      replyTo: o.replyTo, trigger: o.trigger, persona: o.persona ?? room.settings.persona, model: o.model, side: o.side,
     };
     this.push(room, m);
+    room.humanSinceAi = 0; // every AI line spends the budget, whoever posted it
     return m;
   }
 
   postCard(room: Room, card: Card, text = '', trigger?: TriggerKind): ChatMessage {
     const m: ChatMessage = { id: randomUUID(), authorId: null, kind: 'card', card, text, at: room.now(), edited: false, deleted: false, aiReactions: [], reactions: {}, trigger };
     this.push(room, m);
+    if (trigger) room.humanSinceAi = 0; // cards the AI chose to post count as its turn; player-started games do not
     return m;
   }
 
@@ -499,18 +590,6 @@ export class Engine {
 
     const users = room.userMessages();
     const last = users.at(-1);
-    if (last && !room.deadChatFired && now - last.at >= t.deadChatMs) {
-      room.deadChatFired = true;
-      if (room.settings.commentary) {
-        if (this.rng() < 0.34) this.games.copypasta(room);
-        else {
-          const prompt = DEAD_CHAT_PROMPTS[Math.floor(this.rng() * DEAD_CHAT_PROMPTS.length)]!;
-          this.postAi(room, prompt, { trigger: 'dead_chat' });
-          this.playEffects(room, 'dead_chat');
-        }
-      }
-    }
-
     for (const [i, msg] of users.entries()) {
       if (i < users.length - 40 || room.leftOnReadFired.has(msg.id) || now - msg.at < t.leftOnReadMs) continue;
       for (const viewerId of room.seen.get(msg.id) ?? []) {
@@ -546,8 +625,22 @@ export class Engine {
       }
     }
 
+    // order = priority when several are due at once (the AI only takes one turn): the specific beats the generic
     this.dailyTiers(room);
     tickBehavior(this, room);
+    if (room.settings.duel && last && now - last.at >= t.duelLullMs) void this.duelBanter(room).catch((e) => this.log.error(e));
+    if (last && !room.deadChatFired && now - last.at >= t.deadChatMs && room.humanSinceAi >= 1) {
+      room.deadChatFired = true;
+      if (room.settings.commentary) {
+        if (this.rng() < 0.34) this.games.copypasta(room);
+        else {
+          const prompt = DEAD_CHAT_PROMPTS[Math.floor(this.rng() * DEAD_CHAT_PROMPTS.length)]!;
+          this.postAi(room, prompt, { trigger: 'dead_chat' });
+          this.playEffects(room, 'dead_chat');
+        }
+      }
+    }
+
     this.games.tick(room);
 
     if (room.extrasDirty && realNow - room.lastExtrasSaveAt > 5000) {
@@ -562,7 +655,7 @@ export class Engine {
     const day = room.localDayKey();
     const prev = room.lastDayKey;
     room.lastDayKey = day;
-    if (!prev || prev === day || !room.settings.commentary) return;
+    if (!prev || prev === day || !room.settings.commentary || room.humanSinceAi < 1) return;
     const ranked = [...room.members.values()].filter((m) => m.stats.messages > 0).sort((a, b) => b.aura - a.aura);
     if (ranked.length < 2) return;
     const line = `Daily status update: ${ranked.map((m) => `${m.name} ${TIERS[m.stats.tier].emoji} ${TIERS[m.stats.tier].name}`).join(', ')}`;
@@ -627,6 +720,11 @@ export class Engine {
   }
 
   force(room: Room, kind: TriggerKind, memberId?: string): Promise<void> {
+    this.staging++;
+    return this.forceInner(room, kind, memberId).finally(() => this.staging--);
+  }
+
+  private forceInner(room: Room, kind: TriggerKind, memberId?: string): Promise<void> {
     const all = [...room.members.values()];
     const member = (memberId && room.members.get(memberId)) || all[0];
     const other = all.find((m) => m.id !== member?.id)?.name ?? 'someone';
@@ -638,6 +736,7 @@ export class Engine {
     if (kind === 'recap') return this.memory.recap(room).then(() => {});
     if (kind === 'awards') { this.memory.awards(room); return Promise.resolve(); }
     if (kind === 'wrapped') { if (member) this.memory.wrapped(room, member.id); return Promise.resolve(); }
+    if (kind === 'duel') return this.duelBanter(room, true);
     if (kind === 'meme') { const last = room.userMessages().at(-1); return last && member ? this.memory.makeMeme(room, member.id, last.id).then(() => {}) : Promise.resolve(); }
     this.playEffects(room, kind);
     return this.comment(room, {

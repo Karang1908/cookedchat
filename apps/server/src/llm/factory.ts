@@ -6,7 +6,7 @@ import { buildMessages, sanitizeLine } from './prompt.js';
 import { ollamaProvider, openAiCompatProvider } from './providers.js';
 import type { LlmProvider } from './providers.js';
 import { LlmRouter } from './router.js';
-import type { CommentWriter } from '../engine.js';
+import type { CommentWriter, Line } from '../engine.js';
 
 export function buildRouter(c: Config): LlmRouter {
   const log = new Logger('LlmFactory');
@@ -27,9 +27,17 @@ export function buildRouter(c: Config): LlmRouter {
 export class LlmCommentator implements CommentWriter {
   constructor(private readonly router: LlmRouter) {}
 
-  async write(ctx: CommentContext): Promise<string | null> {
-    const r = await this.router.complete(buildMessages(ctx));
-    return r ? sanitizeLine(r.text) : null;
+  async write(ctx: CommentContext): Promise<Line | null> {
+    const r = await this.router.complete(buildMessages(ctx), ctx.prefer);
+    const text = r ? sanitizeLine(r.text) : null;
+    return text ? { text, model: r!.provider } : null;
+  }
+
+  /** one sanitized line from a free-form prompt (AI-vs-AI duel banter) */
+  async say(p: { system: string; user: string; prefer?: 'groq' | 'ollama' }): Promise<Line | null> {
+    const r = await this.router.complete([{ role: 'system', content: p.system }, { role: 'user', content: p.user }], p.prefer);
+    const text = r ? sanitizeLine(r.text) : null;
+    return text ? { text, model: r!.provider } : null;
   }
 
   /** free-form generation for judges, translators, captions, recaps. Anything touching off-limits topics is dropped. */

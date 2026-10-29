@@ -47,4 +47,5 @@ export const EFFECTS: Partial<Record<TriggerKind, { fx?: { kind: FxKind; emoji?:
   vote_result: { sound: 'dunDunDun' },
   battle_result: { fx: [{ kind: 'confetti' }], sound: 'airhorn' },
   bet_result: { sound: 'pipe' },
+  duel: { sound: 'vineBoom' },
 };

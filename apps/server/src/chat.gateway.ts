@@ -22,7 +22,7 @@ interface SocketData {
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
 const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone', 'claim', 'hottake', 'bet', 'battle', 'confession'];
-const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme'];
+const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme', 'duel'];
 
 const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const digest = (s: string) => createHash('sha256').update(s).digest();

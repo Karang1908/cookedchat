@@ -37,6 +37,7 @@ function build(gifs?: { find(q: string): Promise<string | null> }) {
   const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0, gifs });
   const room = new Room('TEST', 0);
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
+  room.settings.aiEvery = 0;
   const add = (id: string, name: string) => (engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`), id);
   return { bus, writer, engine, room, add };
 }
@@ -95,7 +96,15 @@ test('daily tiers: announced once when the room day rolls over, with 2+ active m
   s.engine.tick(s.room);
   assert.equal(tiers().length, 1, 'once per day');
   s.engine.warp(s.room, 25 * 3_600_000);
-  assert.equal(tiers().length, 2, 'and again the next day');
+  assert.equal(tiers().length, 1, 'nobody spoke since the last announcement: no second AI turn in a row');
+  for (const [id, t] of [[a, 'morning'], [b, 'yo']] as const) {
+    const back = s.engine.send(s.room, id, t); // "morning" after 50h is itself roasted (slow reply), so it takes two
+    assert.ok(back.ok);
+    await back.done;
+  }
+  assert.ok(s.room.humanSinceAi >= 1);
+  s.engine.warp(s.room, 25 * 3_600_000);
+  assert.equal(tiers().length, 2, 'once a human spoke, the next day gets its announcement');
 
   const solo = build();
   const x = solo.add('x', 'Solo');

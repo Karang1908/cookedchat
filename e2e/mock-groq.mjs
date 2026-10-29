@@ -9,6 +9,11 @@ http.createServer((req, res) => {
       return res.end(JSON.stringify({ data: [{ images: { fixed_height: { url: 'https://media1.giphy.com/media/mock/200.gif' } } }] }));
     }
     const body = JSON.parse(raw || '{}');
+    if (req.url.startsWith('/api/chat')) {
+      // Ollama Cloud's native API
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ message: { role: 'assistant', content: 'MOCK-OLLAMA: clapping back 🗿' } }));
+    }
     const user = body.messages?.find((m) => m.role === 'user')?.content ?? '';
     const fact = /What just happened: (.*)/.exec(user)?.[1] ?? '?';
     res.writeHead(200, { 'content-type': 'application/json' });

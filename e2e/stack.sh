@@ -28,7 +28,7 @@ up() {
   curl -s --noproxy '*' -m 1 localhost:54331 >/dev/null 2>&1 || (setsid node "$ROOT/e2e/mock-groq.mjs" > "$RUN/mock.log" 2>&1 < /dev/null & echo $! > "$RUN/mock.pid")
   curl -s --noproxy '*' -m 1 localhost:4010/health >/dev/null 2>&1 || (cd "$ROOT/apps/server"; \
     PORT=4010 ADMIN_KEY=letmein DATABASE_URL=$dburl DATABASE_SSL=false GROQ_API_KEY=test-key GROQ_BASE_URL=http://127.0.0.1:54331/v1 \
-    GIPHY_API_KEY=test GIPHY_BASE_URL=http://127.0.0.1:54331 LLM_ORDER=groq-120b setsid node dist/main.js > "$RUN/server.log" 2>&1 < /dev/null & echo $! > "$RUN/server.pid")
+    OLLAMA_API_KEY=test OLLAMA_BASE_URL=http://127.0.0.1:54331 GIPHY_API_KEY=test GIPHY_BASE_URL=http://127.0.0.1:54331 LLM_ORDER=groq-120b,ollama setsid node dist/main.js > "$RUN/server.log" 2>&1 < /dev/null & echo $! > "$RUN/server.pid")
   curl -s --noproxy '*' -m 1 localhost:3010 >/dev/null 2>&1 || (cd "$ROOT/apps/web"; setsid pnpm exec next start -p 3010 > "$RUN/web.log" 2>&1 < /dev/null & echo $! > "$RUN/web.pid")
   for _ in $(seq 1 20); do curl -s --noproxy '*' -m 1 -o /dev/null localhost:3010 && curl -s --noproxy '*' -m 1 localhost:4010/health >/dev/null && break; sleep 1; done
   curl -sS --noproxy '*' localhost:4010/health; echo

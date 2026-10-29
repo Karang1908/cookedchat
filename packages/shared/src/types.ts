@@ -20,6 +20,7 @@ export type TriggerKind =
   | 'mog'
   | 'lore'
   | 'tiers'
+  | 'duel'
   | 'recap'
   | 'awards'
   | 'wrapped'
@@ -83,6 +84,8 @@ export interface RoomTimings {
   loreGapMs: number;
   /** how long a vote / battle stays open (real ms) */
   voteWindowMs: number;
+  /** in duel rooms: this much silence (room clock) and the two AIs start roasting each other */
+  duelLullMs: number;
 }
 
 export const DEFAULT_TIMINGS: RoomTimings = {
@@ -99,6 +102,7 @@ export const DEFAULT_TIMINGS: RoomTimings = {
   owlMs: 4 * 60 * 60_000,
   loreGapMs: 6 * 60 * 60_000,
   voteWindowMs: 30_000,
+  duelLullMs: 45_000,
 };
 
 export interface RoomSettings {
@@ -115,6 +119,13 @@ export interface RoomSettings {
   jumpscare: boolean;
   /** a second persona that argues with the first on every comment */
   rival: PersonaId | null;
+  /** Groq vs Ollama Cloud: the main persona runs on Groq, the rival on Ollama, and they roast each other in lulls */
+  duel: boolean;
+  /**
+   * The AI's speaking budget: human messages needed since the last AI turn before an ordinary trigger may speak.
+   * Core jokes need half, big moments one. Two AI turns in a row never happen. 0 = only that last rule.
+   */
+  aiEvery: number;
   timings: RoomTimings;
 }
 
@@ -127,6 +138,8 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   chaos: false,
   jumpscare: false,
   rival: null,
+  duel: false,
+  aiEvery: 4,
   timings: DEFAULT_TIMINGS,
 };
 
@@ -242,6 +255,10 @@ export interface ChatMessage {
   persona?: PersonaId;
   /** optional trending GIF (GIPHY, only when the server has a key) attached to an AI reaction */
   gif?: string;
+  /** AI messages: the provider that wrote it ('groq-120b', 'ollama', ...) or 'canned' */
+  model?: string;
+  /** AI messages in duel rooms: which side of the Groq vs Ollama duel spoke */
+  side?: 'groq' | 'ollama';
 }
 
 export interface AuraEntry {

@@ -347,7 +347,7 @@ export class Games {
     const pick = [...pool].sort((a, b) => score(b) - score(a))[0]!;
     const author = room.members.get(pick.authorId!);
     this.e.postCard(room, { type: 'replay', messageId: pick.id, authorName: author?.name ?? 'someone', text: pick.text }, "Let's go to the tape 🎬", 'replay');
-    void this.e.comment(room, { kind: 'replay', member: author, text: pick.text, fact: `is being replayed from the archive: they said "${pick.text.slice(0, 120)}"`, targetId: pick.id }, true).catch(() => {});
+    void this.e.comment(room, { kind: 'replay', member: author, text: pick.text, fact: `is being replayed from the archive: they said "${pick.text.slice(0, 120)}"`, targetId: pick.id }, true, true).catch(() => {});
     return ok();
   }
 
