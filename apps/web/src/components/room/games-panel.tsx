@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { HOT_TAKE_PROMPTS } from '@cooked/shared';
 import { useRoomActions } from '@/lib/room-actions';
+import { Button, Section, fieldCls } from '../ui';
 
 /** Starts the interactive stuff. Anything that can be refused (rate limits, bad input) shows the server's reason. */
 export function GamesPanel() {
@@ -32,64 +33,59 @@ export function GamesPanel() {
     setNote(err ? { ok: false, text: err } : { ok: true, text: label });
     if (!err) onOk?.();
   };
-  const field = 'min-w-0 flex-1 rounded-lg border border-white/10 bg-ink-850 px-3 py-2 text-sm outline-none focus:border-blurple';
-  const btn = 'rounded-lg bg-blurple px-3 py-2 text-xs font-bold transition enabled:hover:bg-blurple-soft enabled:active:scale-95 disabled:opacity-40';
+  const select = clsx(fieldCls, 'h-9 min-w-0 flex-1 cursor-pointer text-[13px]');
+  const input = clsx(fieldCls, 'h-9 min-w-0 flex-1 text-[13px]');
 
   return (
-    <section aria-label="Games">
-      <div className="mb-2 flex items-baseline justify-between">
-        <h3 className="font-display text-lg uppercase tracking-wide text-mute">Games</h3>
-        <span className="font-mono text-xs text-mute">{me?.coins ?? 0} 🪙</span>
-      </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        <button onClick={() => void run('forecast posted', a.forecast())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🌦️ chat forecast</button>
-        <button onClick={() => void run('rolling the tape', a.replay())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🎬 instant replay</button>
-        <button onClick={() => void run('season recap posted', a.recap())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">📺 season recap</button>
-        <button onClick={() => void run('awards posted', a.awards())} className="rounded-xl border border-white/5 bg-ink-800/80 px-2 py-2.5 text-left text-xs font-semibold transition hover:border-blurple/60 active:scale-95">🏆 chat awards</button>
-        <button onClick={() => void run('your Wrapped is ready', a.wrapped())} className="col-span-2 rounded-xl border border-magenta/30 bg-magenta/10 px-2 py-2.5 text-left text-xs font-bold transition hover:border-magenta/70 active:scale-95">🎁 my Brainrot Wrapped</button>
-      </div>
-
-      <form className="mt-3" onSubmit={(e) => { e.preventDefault(); void run('hot take is live', a.hotTake(take), () => setTake('')); }}>
-        <label className="text-[11px] font-semibold uppercase tracking-widest text-mute" htmlFor="take">hot take arena</label>
-        <div className="mt-1 flex gap-1.5">
-          <input id="take" value={take} onChange={(e) => setTake(e.target.value)} maxLength={200} placeholder="cereal is soup" className={field} />
-          <button className={btn} disabled={take.trim().length < 5}>post</button>
+    <section className="space-y-6" aria-label="Games">
+      <Section title="Ask the AI" action={<span className="font-mono text-xs text-faint">{me?.coins ?? 0} 🪙</span>}>
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" onClick={() => void run('forecast posted', a.forecast())}>🌦️ chat forecast</Button>
+          <Button size="sm" onClick={() => void run('rolling the tape', a.replay())}>🎬 instant replay</Button>
+          <Button size="sm" onClick={() => void run('season recap posted', a.recap())}>📺 season recap</Button>
+          <Button size="sm" onClick={() => void run('awards posted', a.awards())}>🏆 chat awards</Button>
+          <Button size="sm" className="col-span-2" onClick={() => void run('your Wrapped is ready', a.wrapped())}>🎁 my Brainrot Wrapped</Button>
         </div>
-        <button type="button" onClick={() => setTake(HOT_TAKE_PROMPTS[Math.floor(Math.random() * HOT_TAKE_PROMPTS.length)]!)} className="mt-1 text-[11px] text-blurple-soft underline">need inspiration?</button>
-      </form>
+      </Section>
 
-      <form className="mt-3" onSubmit={(e) => { e.preventDefault(); void run('confession posted (anonymously)', a.confess(confession), () => setConfession('')); }}>
-        <label className="text-[11px] font-semibold uppercase tracking-widest text-mute" htmlFor="conf">anonymous confession</label>
-        <div className="mt-1 flex gap-1.5">
-          <input id="conf" value={confession} onChange={(e) => setConfession(e.target.value)} maxLength={280} placeholder="i read it and said nothing" className={field} />
-          <button className={btn} disabled={confession.trim().length < 5}>🤫</button>
-        </div>
-      </form>
+      <Section title="Hot take arena">
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void run('hot take is live', a.hotTake(take), () => setTake('')); }}>
+          <input id="take" aria-label="hot take arena" value={take} onChange={(e) => setTake(e.target.value)} maxLength={200} placeholder="cereal is soup" className={input} />
+          <Button size="sm" variant="primary" className="h-9" disabled={take.trim().length < 5}>post</Button>
+        </form>
+        <button type="button" onClick={() => setTake(HOT_TAKE_PROMPTS[Math.floor(Math.random() * HOT_TAKE_PROMPTS.length)]!)} className="mt-1.5 text-xs font-medium text-faint hover:text-fg">Need inspiration?</button>
+      </Section>
 
-      <div className="mt-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-mute">rizz battle</div>
-        <div className="mt-1 flex gap-1.5">
-          <select value={opponent} onChange={(e) => setOpponent(e.target.value)} aria-label="Battle opponent" className={clsx(field, 'bg-ink-800')}>
+      <Section title="Anonymous confession">
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void run('confession posted (anonymously)', a.confess(confession), () => setConfession('')); }}>
+          <input id="conf" aria-label="anonymous confession" value={confession} onChange={(e) => setConfession(e.target.value)} maxLength={280} placeholder="i read it and said nothing" className={input} />
+          <Button size="sm" className="h-9" aria-label="🤫" disabled={confession.trim().length < 5}>🤫</Button>
+        </form>
+        <p className="mt-1.5 text-xs text-faint">Nobody, including the server, keeps who wrote it.</p>
+      </Section>
+
+      <Section title="Rizz battle">
+        <div className="flex gap-2">
+          <select value={opponent} onChange={(e) => setOpponent(e.target.value)} aria-label="Battle opponent" className={select}>
             {others.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
-          <button className={btn} disabled={!opponent} onClick={() => void run('battle started', a.battleStart(opponent))}>⚔️ fight</button>
+          <Button size="sm" className="h-9 shrink-0" disabled={!opponent} onClick={() => void run('battle started', a.battleStart(opponent))}>⚔️ fight</Button>
         </div>
-      </div>
+      </Section>
 
-      <div className="mt-3">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-mute">prediction market</div>
-        <div className="mt-1 flex gap-1.5">
-          <select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Market subject" className={clsx(field, 'bg-ink-800')}>
+      <Section title="Prediction market">
+        <div className="flex gap-2">
+          <select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Market subject" className={select}>
             {others.map((m) => <option key={m.id} value={m.id}>will {m.name} reply…</option>)}
           </select>
-          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} aria-label="Market window" className={clsx(field, 'max-w-20 flex-none bg-ink-800')}>
+          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} aria-label="Market window" className={clsx(fieldCls, 'h-9 w-20 shrink-0 cursor-pointer text-[13px]')}>
             {[1, 5, 10, 30].map((n) => <option key={n} value={n}>{n}m</option>)}
           </select>
-          <button className={btn} disabled={!subject} onClick={() => void run('market opened', a.createBet(subject, minutes))}>💰 open</button>
+          <Button size="sm" className="h-9 shrink-0" disabled={!subject} onClick={() => void run('market opened', a.createBet(subject, minutes))}>💰 open</Button>
         </div>
-      </div>
+      </Section>
 
-      {note && <p role="status" className={clsx('pop-in mt-2 rounded-lg px-3 py-1.5 text-xs font-semibold', note.ok ? 'bg-mint/15 text-mint' : 'bg-ember/15 text-ember')}>{note.text}</p>}
+      {note && <p role="status" className={clsx('rounded-lg px-3 py-2 text-xs font-medium', note.ok ? 'bg-good/10 text-good' : 'bg-bad/10 text-bad')}>{note.text}</p>}
     </section>
   );
 }

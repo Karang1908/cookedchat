@@ -21,6 +21,8 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await actx.addInitScript(() => sessionStorage.setItem('cooked.adminKey', 'letmein'));
   const admin = await actx.newPage(); watch(admin, 'admin');
   await admin.goto(`${WEB}/admin/${code}`);
+  // these flows test individual roasts, so switch the AI's speaking budget off (what you would do on stage)
+  await admin.getByLabel('AI speaks every N human messages').focus(); await admin.keyboard.press('Home'); await sleep(250);
   await admin.getByRole('button', { name: /add Aman, Riya/i }).click(); await sleep(400);
   await admin.getByRole('button', { name: 'demo speed' }).click(); await sleep(400);
   const stage = (re) => admin.getByRole('button', { name: re }).click();
@@ -38,6 +40,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await riya.screenshot({ path: `${SHOTS}/b1-mobile-vote.png` });
 
   // ---- 2. hot take by a human, validation + rate limit
+  await aman.getByRole('radio', { name: 'Games', exact: true }).click(); // desktop: games live behind the Games tab
   await aman.getByLabel('hot take arena').fill('no');
   assert.equal(await aman.getByRole('button', { name: 'post' }).isDisabled(), true, 'too short is blocked client-side');
   await aman.getByLabel('hot take arena').fill('cereal is soup obviously');
@@ -80,7 +83,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await riya.getByRole('button', { name: 'Chat', exact: true }).click();
 
   // ---- 5. anonymous confession
-  await riya.getByRole('button', { name: 'Chaos', exact: true }).click();
+  await riya.getByRole('button', { name: 'Games', exact: true }).click();
   await riya.getByLabel('anonymous confession').fill('i have been pretending to read this chat for weeks');
   await riya.getByRole('button', { name: '🤫' }).click();
   await riya.getByRole('button', { name: 'Chat', exact: true }).click();

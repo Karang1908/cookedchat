@@ -143,3 +143,18 @@ test('router: prefer puts a provider family first and still falls back', async (
   const down = new LlmRouter([mk('groq-120b', true), mk('ollama', false)], opts);
   assert.equal((await down.complete([], 'ollama'))?.provider, 'groq-120b', 'Ollama down: Groq covers its line');
 });
+
+test('duel: a lull right after an AI turn does not start banter (never two AI turns in a row)', async () => {
+  const s = setup();
+  s.engine.setSettings(s.room, { duel: true });
+  const a = s.add('a', 'Aman');
+  await say(s, a, "wait I'll reply later"); // the duel turn: Groq + Ollama
+  assert.equal(s.room.humanSinceAi, 0);
+  s.engine.warp(s.room, s.room.settings.timings.duelLullMs + 1000);
+  await new Promise((r) => setTimeout(r, 5));
+  assert.equal(s.room.messages.filter((m) => m.trigger === 'duel').length, 0);
+  await say(s, a, 'see you all at eight');
+  s.engine.warp(s.room, s.room.settings.timings.duelLullMs + 1000);
+  await new Promise((r) => setTimeout(r, 5));
+  assert.equal(s.room.messages.filter((m) => m.trigger === 'duel').length, 3);
+});

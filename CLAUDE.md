@@ -30,6 +30,17 @@ pnpm --filter @cooked/web typecheck
 
 `e2e/` has real-client suites (Socket.IO + Playwright with a desktop player, a phone player and the admin) against a stack with a mock LLM/GIPHY and a throwaway Postgres. See `e2e/README.md`. Run them after changing anything in the chat flow; they found most of the UI bugs listed below (unit tests cannot see stacking contexts, overflow or timers).
 
+## Design system (web)
+
+Clean messenger look. Tokens live in `apps/web/src/app/globals.css` (`bg / panel / surface / raised / line / fg / muted / faint`, one `accent` (ember), `good / bad / warn`, `groq / ollama` for duel sides). Primitives in `components/ui.tsx` (`Button`, `Section`, `Segmented`, `Switch`, `Chip`, `fieldCls`, `Wordmark`). Inter everywhere; the display font (Anton) is only for loud moments (meltdown, posters, BREAKING). No gradient text, glows or border beams. AI lines are a ruled aside (`[data-ai-line]`, label `[data-ai-label]`), not a bubble; tests rely on those hooks.
+
+## AI balance
+
+- **Speaking budget** (`Engine.mayTakeTurn`): ordinary triggers need `settings.aiEvery` user messages since the AI's last turn (default 4), priority 8 needs half, priority 9+ needs one. `force` (system events) skips dice/cooldown but still needs one human message. Never two AI turns in a row; timers obey it too, ordered so the specific beats the generic (left on read → daily tiers → posters/owl → duel lull → dead chat). Blocked moments get a quiet emoji (`quietReact`). Staged/admin moments bypass all of it.
+- `room.humanSinceAi` resets in `postAi` and in `postCard` when the card has a trigger (AI-chosen). Player-started games don't spend the budget. A follow-up line in the same AI turn passes `sameTurn` (e.g. the instant-replay roast).
+- **Duel** (`settings.duel`, admin toggle): main persona on Groq (`prefer: 'groq'`), rival (configured, or a contrasting default) on Ollama; lines carry `model` and `side`. `duelBanter` runs once per lull (`duelLullMs`, room clock) after a human spoke. The router's `prefer` only reorders: if Ollama is down, Groq covers its line.
+- Unit tests set `aiEvery = 0` in `setup()`; the budget has its own suite (`engine-e.test.ts`). E2E flows that test a specific roast turn it off through the admin slider.
+
 ## Landmines (each one cost time)
 
 - **Nest 12 is ESM-only.** `apps/server` is `"type": "module"`, tsconfig `NodeNext`: relative imports need the `.js` suffix. Nest's CLI is not used; `tsc` + `node`.
@@ -61,6 +72,11 @@ pnpm --filter @cooked/web typecheck
 - **Share images are drawn client-side** on a canvas (`lib/share-card.ts`, 1080px PNG) and shared with `navigator.share` or downloaded. Fonts must be loaded first (`ensureFonts`).
 - **Timers in effects**: keep UI hide-timers in a `ref`, not in an effect cleanup. The messages array changes constantly (GIFs, reactions); a cleanup cancels the timer and an early return then never re-arms it (this hid the BREAKING banner forever once).
 - **GIFs** are optional (`GIPHY_API_KEY`, `GIPHY_BASE_URL` for tests), attached *after* the roast is posted, and only https `giphy.com` URLs are accepted (server and client both check). Stickers are plain emoji tiles keyed by trigger (`STICKER`).
+- **Never put sizes in a shared class string.** `fieldCls` once had `h-10 w-full`; a per-use `w-24`/`h-9` then lost silently (two utilities of the same kind resolve by stylesheet order, not class-list order). Each use states its own width/height.
+- **Unlayered CSS beats Tailwind utilities regardless of specificity.** Global rules that utilities should be able to override (e.g. the `:focus-visible` ring) go in `@layer base`.
+- **Deep fry font**: Comic Neue is shipped via fontsource. Never fall back to the generic `cursive` (it is a serif on Linux/Android, which made the whole UI look broken).
+- **Cooked heat is calibrated**: 2 per message, decay 1/s, 67 +20. Ordinary chat stays under 50%, so the UI only fries under real chaos.
+- **Env files**: root `.env.example` is the Vercel paste (web only, no secrets); `apps/server/.env.example` is the Render paste.
 - **Derived data**: `Member.stats` (class, creature, tier, rizz, power) is recomputed by `Room.recompute()` and flushed at most once per tick. Raw counters live in `Room.stats` and are persisted in `rooms.extras` (5s debounce); message extras (reactions, ohio, cards) in `messages.extra`. Migrations 0001+0002 must both be applied.
 
 ## Conventions

@@ -6,7 +6,8 @@ The AI that lives in your group chat. It interrupts, roasts, reacts and awards a
 
 ```bash
 pnpm install
-cp apps/server/.env.example apps/server/.env   # loaded automatically by dev:server
+cp apps/server/.env.example apps/server/.env   # loaded automatically by dev:server (set ADMIN_KEY)
+cp apps/web/.env.example apps/web/.env.local
 pnpm dev:server    # :4000
 pnpm dev:web       # :3000
 ```
@@ -26,24 +27,23 @@ pnpm build && pnpm test      # unit tests: shared + server
 
 Real-client end-to-end suites live in [`e2e/`](e2e/README.md).
 
-## Deploy (not yet exercised)
+## Deploy
 
-- **Supabase**: run `supabase/migrations/0001_init.sql`, then put the connection string in `DATABASE_URL`
-  (try the pooler string if the direct one is unreachable from Render).
-- **Render**: `render.yaml` describes the server. Point UptimeRobot at `https://<service>.onrender.com/health` every 5 min.
-- **Vercel**: root directory `apps/web`, set `NEXT_PUBLIC_SERVER_URL` to the Render URL, and set the server's
-  `CORS_ORIGINS` to the Vercel URL. `pnpm build` builds the shared package first.
+Two pieces: the web app on **Vercel**, the realtime server on **Render** (Vercel can't hold WebSockets). Optional: **Supabase** for persistence.
 
-## What's in it
+1. **Supabase** (optional): run `supabase/migrations/*.sql` in the SQL editor, then copy the *Session pooler* connection string.
+2. **Render**: New → Blueprint → this repo (uses `render.yaml`). In Environment, paste `apps/server/.env.example` and fill in `ADMIN_KEY`, `GROQ_API_KEY` / `OLLAMA_API_KEY`, `DATABASE_URL`. Copy the service URL.
+3. **Vercel**: Import this repo, set **Root Directory = `apps/web`**, then paste the root [`.env.example`](.env.example) into Environment Variables with `NEXT_PUBLIC_SERVER_URL` = your Render URL. Deploy.
+4. Back on Render, set `CORS_ORIGINS` to your Vercel URL.
+5. Point UptimeRobot at `https://<service>.onrender.com/health` every 5 minutes so the free instance stays awake.
 
-Everything in the original spec, in four batches:
+Not exercised from here: the steps above are standard but have not been run against real Render/Vercel/Supabase accounts.
 
-- **Watches**: reply speed, typing drama, typed-then-deleted, left on read, bursts, dry texts, tone shifts (`ok` → `ok.`), topic derails, edits/deletes, food, 67, Ohio %, cap detector, late night, heated arguments (mewing), simp radar, silence (Duolingo owl, missing-person posters, betrayal alert)
-- **Scores**: aura with receipts, rizz meter, power level (scouter), RPG classes, Italian-brainrot creatures, sigma/alpha/beta/NPC tiers, mogs, cooked-o-meter with deep-fry stages and a room-wide meltdown
-- **Plays**: "Chat, is this real?" votes, hot take arena, prediction market (fake coins), rizz battles, anonymous confessions, chaos agent, cursed copypasta, chat weather forecast, instant replay
-- **Remembers**: lore keeper, season recap, chat awards, Brainrot Wrapped, auto memes, shareable PNG cards, daily tiers
-- **Speaks**: 6 personas + a rival that argues back, brainrot slider and roast intensity, brainrot / plain-English / "what they really meant" translators, soundboard, robot voice, stickers, optional GIFs, BREAKING NEWS banner
-- **Admin** (`/admin/<code>`): room clock warp, every timing live, staged demos of each moment, forced triggers, bots
+## Balance and the AI duel
+
+The AI is a member, not a reply bot. It speaks roughly once every few human messages (`aiEvery`, default 4: ordinary moments wait for 4 human messages, core jokes 2, big moments like 67 or a mog 1), never twice in a row, and otherwise just drops an emoji reaction. Tune it live in the admin panel.
+
+Turn on **AI duel** in the admin panel and each roast gets a reply from a second persona running on the other model (Groq vs Ollama Cloud, labelled in the chat). When the room goes quiet, the two AIs roast each other once, then wait for a human.
 
 ## What the AI watches
 

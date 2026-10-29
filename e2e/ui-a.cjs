@@ -31,6 +31,8 @@ const box = (p) => p.getByRole('textbox', { name: 'Message' });
   await actx.addInitScript(() => sessionStorage.setItem('cooked.adminKey', 'letmein'));
   const admin = await actx.newPage(); watch(admin, 'admin');
   await admin.goto(`${WEB}/admin/${code}`);
+  // these flows test individual roasts, so switch the AI's speaking budget off (what you would do on stage)
+  await admin.getByLabel('AI speaks every N human messages').focus(); await admin.keyboard.press('Home'); await sleep(250);
   await admin.getByRole('button', { name: /add Aman, Riya/i }).click();
   await sleep(500);
 
@@ -62,14 +64,14 @@ const box = (p) => p.getByRole('textbox', { name: 'Message' });
 
   // 3. profile dialog
   await aman.getByRole('button', { name: 'Riya profile' }).first().click();
-  await aman.getByRole('dialog').getByText(/scouter reading/).waitFor();
+  await aman.getByRole('dialog').getByText(/Power level/).waitFor();
   const dialogText = await aman.getByRole('dialog').innerText();
   console.log('profile has creature + class + tier:', /Lirili|Tung|Bombardiro|Ballerina|Patapim|Trippi|Cappuccino/i.test(dialogText), /Lurker|Instigator|Healer|Final Boss/i.test(dialogText), /tier/i.test(dialogText));
   await aman.screenshot({ path: `${SHOTS}/a1-profile.png` });
   await aman.keyboard.press('Escape');
 
   // 4. rizz tab
-  await aman.getByRole('tab', { name: 'rizz' }).click();
+  await aman.getByRole('radio', { name: 'Rizz', exact: true }).click();
   await aman.getByText('Rizz meter').waitFor();
 
   // 5. vibe switcher from a member
@@ -77,7 +79,7 @@ const box = (p) => p.getByRole('textbox', { name: 'Message' });
   await sleep(400);
   assert.match(await riya.locator('body').innerText().then(async () => { await riya.getByRole('button', { name: 'Room' }).click(); return riya.locator('select').first().inputValue(); }), /nature/);
   await riya.screenshot({ path: `${SHOTS}/a2-mobile-room-vibe.png` });
-  await riya.getByRole('button', { name: 'Chat' }).click();
+  await riya.getByRole('button', { name: 'Chat', exact: true }).click();
   console.log('vibe switcher synced across clients');
 
   // 6. admin: simp radar, derail, poster, midnight

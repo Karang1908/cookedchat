@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BorderBeam } from 'border-beam';
-import { SendHorizontal, X } from 'lucide-react';
+import { ArrowUp, X } from 'lucide-react';
 
 interface Props {
   disabled?: boolean;
@@ -65,41 +64,39 @@ export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping }:
   };
 
   return (
-    <div className="safe-b relative px-3 pb-3 pt-1 sm:px-5">
-      {error && <div className="pop-in absolute -top-7 left-1/2 -translate-x-1/2 rounded-full bg-ember/90 px-3 py-1 text-xs font-semibold">{error}</div>}
+    <div className="safe-b relative px-3 pb-3 pt-2 sm:px-6">
+      {error && <div className="pop-in absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-bad px-3 py-1 text-xs font-semibold text-white">{error}</div>}
       {replyTo && (
-        <div className="pop-in mb-1.5 flex items-center gap-2 rounded-xl border-l-2 border-blurple bg-ink-800/80 px-3 py-1.5 text-xs text-mute">
-          <span className="min-w-0 flex-1 truncate">Replying to <b className="text-blurple-soft">{replyTo.name}</b>: {replyTo.text}</span>
-          <button onClick={onCancelReply} aria-label="Cancel reply" className="rounded p-0.5 hover:text-white"><X size={14} /></button>
+        <div className="pop-in mb-2 flex items-center gap-2 border-l-2 border-accent pl-2.5 text-xs text-muted">
+          <span className="min-w-0 flex-1 truncate">Replying to <b className="font-semibold text-fg">{replyTo.name}</b>: {replyTo.text}</span>
+          <button onClick={onCancelReply} aria-label="Cancel reply" className="rounded p-0.5 text-faint hover:text-fg"><X size={14} /></button>
         </div>
       )}
-      <BorderBeam size="line" colorVariant="ocean" active={focused} strength={0.9}>
-        <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-ink-800 p-2 pl-4" style={{ borderRadius: 16 }}>
-          <textarea
-            ref={ta}
-            value={value}
-            rows={1}
-            maxLength={500}
-            disabled={disabled}
-            placeholder={disabled ? 'reconnecting…' : 'say something (the AI is watching)'}
-            aria-label="Message"
-            onChange={(e) => change(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onKeyDown={(e) => {
-              // on phones Enter is a newline; the send button is right there
-              if (e.key === 'Enter' && !e.shiftKey && !matchMedia('(pointer: coarse)').matches) {
-                e.preventDefault();
-                void submit();
-              }
-            }}
-            className="max-h-36 min-h-[28px] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug text-text placeholder:text-mute/70 focus:outline-none"
-          />
-          <button onClick={() => void submit()} disabled={disabled || !value.trim()} aria-label="Send" className="grid size-10 shrink-0 place-items-center rounded-xl bg-blurple text-white transition enabled:hover:bg-blurple-soft enabled:active:scale-95 disabled:opacity-40">
-            <SendHorizontal size={18} />
-          </button>
-        </div>
-      </BorderBeam>
+      <div className={`flex items-end gap-2 rounded-2xl border bg-surface p-1.5 pl-4 transition-colors ${focused ? 'border-line-strong' : 'border-line'}`}>
+        <textarea
+          ref={ta}
+          value={value}
+          rows={1}
+          maxLength={500}
+          disabled={disabled}
+          placeholder={disabled ? 'reconnecting…' : 'say something (the AI is watching)'}
+          aria-label="Message"
+          onChange={(e) => change(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onKeyDown={(e) => {
+            // on phones Enter is a newline; the send button is right there
+            if (e.key === 'Enter' && !e.shiftKey && !matchMedia('(pointer: coarse)').matches) {
+              e.preventDefault();
+              void submit();
+            }
+          }}
+          className="max-h-36 min-h-[28px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-snug text-fg placeholder:text-faint focus:outline-none focus-visible:outline-none"
+        />
+        <button onClick={() => void submit()} disabled={disabled || !value.trim()} aria-label="Send" className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-ink transition-colors enabled:hover:bg-accent-hover enabled:active:scale-95 disabled:bg-raised disabled:text-faint">
+          <ArrowUp size={18} strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -38,7 +38,7 @@ export function FxLayer() {
         <motion.div key="melt" role="alert" onClick={() => setOverlay(null)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex cursor-pointer flex-col items-center justify-center bg-black/85 px-6 text-center backdrop-blur-sm">
           <Goblin3D heat={1} className="h-[42vh] w-full max-w-md" />
           <h2 className="meltdown-text font-display text-6xl uppercase leading-none tracking-wide text-white sm:text-8xl">IT&apos;S OVER 🥀</h2>
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-mute">the chat is 100% cooked · tap to dismiss</p>
+          <p className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-white/60">the chat is 100% cooked · tap to dismiss</p>
         </motion.div>
       )}
       {overlay === 'jumpscare' && (

@@ -3,17 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { MessageCircle, QrCode, Sparkles, Users, Zap } from 'lucide-react';
+import { Gamepad2, MessageCircle, Moon, QrCode, Sparkles, Users, Volume2, VolumeX } from 'lucide-react';
 import { fryStage } from '@cooked/shared';
 import type { BrainrotLevel, ChatMessage, PersonaId, RoastIntensity, SoundName } from '@cooked/shared';
 import { loadIdentity, saveIdentity } from '@/lib/identity';
 import type { Identity } from '@/lib/identity';
-import { setMuted, unlockAudio } from '@/lib/sounds';
 import { RoomActionsProvider, useBuildActions } from '@/lib/room-actions';
+import { setMuted, unlockAudio } from '@/lib/sounds';
 import { useLiveRoom } from '@/lib/use-live-room';
 import { CookedMeter } from '../cooked-meter';
 import { FxLayer } from '../fx-layer';
 import { QrDialog } from '../qr-dialog';
+import { Button, Chip, Wordmark } from '../ui';
 import { AuraPanel } from './aura-panel';
 import { BreakingBanner } from './breaking-banner';
 import { Composer } from './composer';
@@ -23,6 +24,7 @@ import { JoinGate } from './join-gate';
 import { MessageList } from './message-list';
 import { ProfileDialog } from './profile-dialog';
 import { RoomPanel } from './room-panel';
+import { SidePanel } from './side-panel';
 import { Soundboard } from './soundboard';
 
 type Tab = 'chat' | 'aura' | 'fun' | 'room';
@@ -31,18 +33,8 @@ export function RoomView({ code }: { code: string }) {
   const [saved, setSaved] = useState<Identity | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   useEffect(() => setSaved(loadIdentity()), []);
-
   if (!identity) {
-    return (
-      <JoinGate
-        code={code}
-        saved={saved}
-        onEnter={(i) => {
-          saveIdentity(i);
-          setIdentity(i);
-        }}
-      />
-    );
+    return <JoinGate code={code} saved={saved} onEnter={(i) => { saveIdentity(i); setIdentity(i); }} />;
   }
   return <LiveRoom code={code} identity={identity} />;
 }
@@ -50,6 +42,7 @@ export function RoomView({ code }: { code: string }) {
 function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   const mode = useMemo(() => ({ kind: 'member' as const, identity }), [identity]);
   const { state, socket } = useLiveRoom(code, mode);
+  const actions = useBuildActions(socket, state.members, state.meId);
   const [tab, setTab] = useState<Tab>('chat');
   const [qrOpen, setQrOpen] = useState(false);
   const [muted, setMutedState] = useState(false);
@@ -63,10 +56,9 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   }, []);
   const hour = new Date(clock + state.clockOffsetMs + state.tzOffsetMin * 60_000).getUTCHours();
   const midnight = hour >= 1 && hour < 5;
-
-  const actions = useBuildActions(socket, state.members, state.meId);
   const stage = fryStage(state.cooked);
   const live = state.status === 'ready';
+  const online = state.members.filter((m) => m.online).length;
 
   useEffect(() => setMuted(muted), [muted]);
 
@@ -93,95 +85,95 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
       }),
     [socket, replyTo],
   );
-  const onReact = useCallback((id: string, emoji: string) => socket.current?.emit('chat:react', { id, emoji }), [socket]);
-  const onVibe = useCallback((p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => socket.current?.emit('room:vibe', p), [socket]);
   const onTyping = useCallback((st: 'start' | 'tick' | 'stop', len: number, cleared?: boolean) => socket.current?.emit('typing', { state: st, len, cleared }), [socket]);
   const onEdit = useCallback((id: string, text: string) => socket.current?.emit('chat:edit', { id, text }), [socket]);
   const onDelete = useCallback((id: string) => socket.current?.emit('chat:delete', { id }), [socket]);
   const onSeen = useCallback((id: string) => socket.current?.emit('chat:seen', { id }), [socket]);
   const onSound = useCallback((name: SoundName) => socket.current?.emit('sound:play', { name }), [socket]);
+  const onReact = useCallback((id: string, emoji: string) => socket.current?.emit('chat:react', { id, emoji }), [socket]);
+  const onVibe = useCallback((p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => socket.current?.emit('room:vibe', p), [socket]);
+  const toggleMute = () => { unlockAudio(); setMutedState((m) => !m); };
 
   if (state.status === 'error') {
     return (
       <main className="grid min-h-dvh place-items-center px-6 text-center">
-        <div>
-          <div className="text-6xl">🫩</div>
-          <h1 className="mt-4 font-display text-4xl uppercase">{state.error === 'room not found' ? `room ${code} doesn't exist` : "couldn't get in"}</h1>
-          <p className="mt-2 text-mute">{state.error}</p>
-          <Link href="/" className="mt-6 inline-block rounded-xl bg-blurple px-5 py-3 font-semibold">back home</Link>
+        <div className="max-w-sm">
+          <div className="text-5xl">🫩</div>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight">{state.error === 'room not found' ? `Room ${code} doesn't exist` : "Couldn't get in"}</h1>
+          <p className="mt-2 text-sm text-muted">{state.error === 'room not found' ? 'Check the code, or start a new room.' : state.error}</p>
+          <Link href="/" className="mt-6 inline-flex h-10 items-center rounded-xl bg-accent px-4 text-sm font-semibold text-accent-ink">Back home</Link>
         </div>
       </main>
     );
   }
 
+  const panel = (
+    <RoomPanel code={code} members={state.members} meId={state.meId} settings={state.settings} muted={muted} voice={voice} onToggleMute={toggleMute} onToggleVoice={() => setVoice((v) => !v)} onVibe={onVibe} onProfile={setProfileId} onInvite={() => setQrOpen(true)} />
+  );
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'chat', label: 'Chat', icon: <MessageCircle size={20} /> },
     { id: 'aura', label: 'Aura', icon: <Sparkles size={20} /> },
-    { id: 'fun', label: 'Chaos', icon: <Zap size={20} /> },
+    { id: 'fun', label: 'Games', icon: <Gamepad2 size={20} /> },
     { id: 'room', label: 'Room', icon: <Users size={20} /> },
   ];
 
   return (
     <RoomActionsProvider value={actions}>
-      <div id="stage" data-fry={Math.min(3, stage)} className="flex h-dvh flex-col lg:block">
-        <div className="mx-auto grid min-h-0 w-full max-w-[1500px] flex-1 grid-cols-[minmax(0,1fr)] lg:h-full lg:grid-cols-[300px_minmax(0,1fr)_340px]">
-          <aside className={clsx('min-h-0 flex-col border-white/5 p-4 lg:flex lg:border-r', tab === 'room' ? 'flex' : 'hidden')}>
-            <Brand />
-            <RoomPanel code={code} members={state.members} meId={state.meId} settings={state.settings} muted={muted} voice={voice} onToggleMute={() => { unlockAudio(); setMutedState((m) => !m); }} onToggleVoice={() => setVoice((v) => !v)} onVibe={onVibe} onProfile={setProfileId} />
-          </aside>
+      <div id="stage" data-fry={Math.min(3, stage)} className="flex h-dvh flex-col bg-bg lg:flex-row">
+        <aside className="hidden w-[272px] shrink-0 flex-col border-r border-line bg-panel lg:flex">
+          <div className="flex h-14 shrink-0 items-center border-b border-line px-4"><Link href="/" aria-label="Home"><Wordmark /></Link></div>
+          {panel}
+        </aside>
 
-          <main className={clsx('min-h-0 flex-col lg:flex', tab === 'chat' ? 'flex' : 'hidden')}>
-            <header className="flex flex-col gap-2.5 border-b border-white/5 px-4 pb-3 pt-[max(env(safe-area-inset-top),0.75rem)] sm:px-5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-display text-2xl uppercase tracking-wider lg:hidden">Cooked Chat</span>
-                <span className="hidden font-mono text-xs uppercase tracking-widest text-mute lg:block">room {code}{midnight && <span className="ml-2 text-blurple-soft">🌙 midnight mode</span>}</span>
-                {midnight && <span className="rounded-full bg-blurple/20 px-2 py-0.5 text-[11px] font-semibold text-blurple-soft lg:hidden">🌙 midnight</span>}
-                <button onClick={() => setQrOpen(true)} className="flex items-center gap-2 rounded-full border border-white/10 bg-ink-800 px-3 py-1.5 font-mono text-xs font-semibold tracking-widest lg:hidden" aria-label="Show invite QR code">
-                  <QrCode size={14} /> {code}
-                </button>
-              </div>
-              <CookedMeter value={state.cooked} />
-            </header>
-            {!live && <div className="bg-sun/15 px-4 py-2 text-center text-xs text-sun" role="status">connecting… (the free server can take ~30s to wake up)</div>}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 pt-[env(safe-area-inset-top)]">
+            <Link href="/" aria-label="Home" className="lg:hidden"><Wordmark /></Link>
+            <div className="hidden min-w-0 lg:block">
+              <div className="text-sm font-semibold">Room <span className="font-mono tracking-wider">{code}</span></div>
+              <div className="text-xs text-faint">{online} online</div>
+            </div>
+            {midnight && <Chip tone="ollama" className="hidden sm:inline-flex"><Moon size={11} /> midnight mode</Chip>}
+            <div className="ml-auto flex items-center gap-2">
+              <CookedMeter value={state.cooked} compact />
+              <Button size="sm" variant="ghost" onClick={() => setQrOpen(true)} aria-label="Show invite QR code"><QrCode size={16} /><span className="font-mono text-xs lg:hidden">{code}</span></Button>
+              <Button size="sm" variant="ghost" className="hidden lg:inline-flex" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</Button>
+            </div>
+          </header>
+          {!live && <div className="border-b border-warn/20 bg-warn/10 px-4 py-1.5 text-center text-xs text-warn" role="status">connecting… (the free server can take ~30s to wake up)</div>}
+
+          <main className={clsx('min-h-0 flex-1 flex-col', tab === 'chat' ? 'flex' : 'hidden lg:flex')}>
             <MessageList messages={state.messages} members={state.members} meId={state.meId} settings={state.settings} typingIds={state.typingIds} thinking={state.thinking} onEdit={onEdit} onDelete={onDelete} onSeen={onSeen} onReact={onReact} onReply={setReplyTo} onProfile={setProfileId} />
             <Composer disabled={!live} replyTo={replyTo ? { name: state.members.find((m) => m.id === replyTo.authorId)?.name ?? '?', text: replyTo.text } : null} onCancelReply={() => setReplyTo(null)} onSend={send} onTyping={onTyping} />
           </main>
 
-          <aside className={clsx('min-h-0 flex-col gap-4 overflow-y-auto border-white/5 p-4 scroll-thin lg:flex lg:border-l', tab === 'aura' || tab === 'fun' ? 'flex' : 'hidden')}>
-            <div className={clsx('shrink-0 flex-col lg:flex', tab === 'aura' ? 'flex' : 'hidden')}>
-              <AuraPanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} />
-            </div>
-            <div className={clsx('shrink-0 flex-col gap-4 lg:flex', tab === 'fun' ? 'flex' : 'hidden')}>
-              <GamesPanel />
-              <Soundboard onPlay={onSound} />
-              <Gameplay />
-            </div>
-          </aside>
+          {tab !== 'chat' && (
+            <section className="min-h-0 flex-1 overflow-y-auto p-4 scroll-thin lg:hidden">
+              {tab === 'aura' && <AuraPanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} />}
+              {tab === 'fun' && <div className="space-y-8"><GamesPanel /><Soundboard onPlay={onSound} /><Gameplay /></div>}
+              {tab === 'room' && <div className="-m-4 flex min-h-full flex-col">{panel}</div>}
+            </section>
+          )}
+
+          <nav className="safe-b grid shrink-0 grid-cols-4 border-t border-line bg-panel lg:hidden" aria-label="Sections">
+            {tabs.map((t) => (
+              <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id} className={clsx('flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors', tab === t.id ? 'text-fg' : 'text-faint')}>
+                <span className={clsx('rounded-full px-4 py-1 transition-colors', tab === t.id && 'bg-surface text-accent')}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        <nav className="safe-b grid grid-cols-4 border-t border-white/10 bg-ink-900/90 backdrop-blur lg:hidden" aria-label="Sections">
-          {tabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id} className={clsx('flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold', tab === t.id ? 'text-white' : 'text-mute')}>
-              <span className={clsx('rounded-full px-4 py-1 transition', tab === t.id && 'bg-blurple/30')}>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <aside className="hidden w-[340px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
+          <SidePanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} onSound={onSound} />
+        </aside>
       </div>
       <div className={clsx('fry-noise', stage >= 3 && 'on')} aria-hidden />
       <FxLayer />
       <BreakingBanner messages={state.messages} ready={live} />
       <QrDialog code={code} open={qrOpen} onClose={() => setQrOpen(false)} />
       <ProfileDialog member={state.members.find((m) => m.id === profileId) ?? null} onClose={() => setProfileId(null)} />
-      {midnight && <div className="pointer-events-none fixed inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(30_10_80/0.45))]" aria-hidden />}
+      {midnight && <div className="pointer-events-none fixed inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(20_30_70/0.35))]" aria-hidden />}
     </RoomActionsProvider>
-  );
-}
-
-function Brand() {
-  return (
-    <Link href="/" className="mb-4 block font-display text-3xl uppercase leading-none tracking-wider">
-      Cooked <span className="bg-gradient-to-r from-blurple-soft to-magenta bg-clip-text text-transparent">Chat</span> 💀
-    </Link>
   );
 }

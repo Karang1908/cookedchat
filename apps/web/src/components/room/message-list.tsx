@@ -2,14 +2,14 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { BorderBeam } from 'border-beam';
 import { ThinkingOrb } from 'thinking-orbs';
 import { ArrowDown, Check, CornerUpLeft, ImagePlus, Languages, Pencil, SmilePlus, Trash2, X } from 'lucide-react';
-import { PERSONAS, STICKER, isDry } from '@cooked/shared';
+import { MODEL_LABEL, PERSONAS, SIDE_LABEL, STICKER, isDry } from '@cooked/shared';
 import type { ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { clockTime } from '@/lib/format';
 import { useRoomActions } from '@/lib/room-actions';
 import { Avatar } from '../avatar';
+import { Chip } from '../ui';
 import { CardView } from './card-view';
 
 interface Props {
@@ -34,7 +34,7 @@ const TRIGGER_LABEL: Record<string, string> = {
   burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am',
   cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', mewing: 'mewing', simp_radar: 'simp radar',
   missing: 'missing', owl: 'the owl', betrayal: 'betrayal', class_change: 'evolution', scouter: 'scouter', mog: 'mog', lore: 'lore', chaos: 'chaos agent',
-  weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
+  weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', duel: 'ai vs ai', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
 };
 
 export function MessageList({ messages, members, meId, settings, typingIds, thinking, onEdit, onDelete, onSeen, onReact, onReply, onProfile }: Props) {
@@ -112,14 +112,15 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
           if (pinned.current) setUnread(0);
         }}
         onClick={() => { setPicker(null); setTmenu(null); setSelected(null); }}
-        className="scroll-thin absolute inset-0 space-y-1 overflow-y-auto px-3 py-4 sm:px-5"
+        className="scroll-thin absolute inset-0 space-y-1 overflow-y-auto px-3 py-5 sm:px-6"
         role="log"
         aria-live="polite"
       >
         {messages.length === 0 && (
-          <div className="mx-auto mt-16 max-w-xs text-center text-mute">
-            <div className="text-5xl">🗿</div>
-            <p className="mt-3 text-sm">Nobody has said anything yet. The AI is watching. Say something.</p>
+          <div className="mx-auto mt-20 max-w-xs text-center">
+            <div className="text-4xl">🗿</div>
+            <p className="mt-3 font-semibold">It&apos;s quiet in here</p>
+            <p className="mt-1 text-sm text-muted">The AI is watching. Invite people with the QR code, then say something.</p>
           </div>
         )}
         {messages.map((m, i) => {
@@ -136,14 +137,15 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
               {!mine && (header && author ? <button onClick={() => onProfile(author.id)} aria-label={`${author.name} profile`}><Avatar type={author.avatar} size={36} /></button> : <div className="w-9 shrink-0" />)}
               <div className={clsx('flex min-w-0 max-w-[80%] flex-col', mine ? 'items-end' : 'items-start')}>
                 {header && !mine && (
-                  <div className="mb-0.5 flex items-center gap-1.5 text-xs font-semibold text-blurple-soft">
-                    {author?.name ?? 'unknown'}
-                    {author?.isBot && <span className="rounded bg-ink-600 px-1 py-px font-mono text-[9px] uppercase text-mute">bot</span>}
+                  <div className="mb-1 flex items-center gap-1.5 text-[13px]">
+                    <span className="font-semibold text-fg">{author?.name ?? 'unknown'}</span>
+                    {author?.isBot && <Chip>bot</Chip>}
+                    <span className="text-[11px] text-faint">{clockTime(m.at)}</span>
                   </div>
                 )}
                 {quoted && (
-                  <div className="mb-0.5 max-w-full truncate rounded-lg border-l-2 border-blurple bg-ink-800/80 px-2 py-1 text-xs text-mute">
-                    <b className="text-blurple-soft">{byId.get(quoted.authorId ?? '')?.name ?? '?'}</b> {quoted.deleted ? 'deleted message' : quoted.text}
+                  <div className="mb-1 max-w-full truncate border-l-2 border-line-strong pl-2 text-xs text-faint">
+                    <b className="font-semibold text-muted">{byId.get(quoted.authorId ?? '')?.name ?? '?'}</b> {quoted.deleted ? 'deleted message' : quoted.text}
                   </div>
                 )}
                 <div className="relative">
@@ -156,18 +158,18 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                         setEditing(null);
                       }}
                     >
-                      <input autoFocus value={editing.draft} onChange={(e) => setEditing({ id: m.id, draft: e.target.value })} onKeyDown={(e) => e.key === 'Escape' && setEditing(null)} className="w-56 rounded-xl border border-blurple bg-ink-850 px-3 py-2 text-[15px] outline-none" maxLength={500} />
-                      <button type="submit" aria-label="Save edit" className="rounded-lg bg-mint/20 p-1.5 text-mint"><Check size={16} /></button>
-                      <button type="button" aria-label="Cancel edit" onClick={() => setEditing(null)} className="rounded-lg bg-ink-700 p-1.5 text-mute"><X size={16} /></button>
+                      <input autoFocus value={editing.draft} onChange={(e) => setEditing({ id: m.id, draft: e.target.value })} onKeyDown={(e) => e.key === 'Escape' && setEditing(null)} className="w-56 rounded-xl border border-accent/70 bg-surface px-3 py-2 text-[15px] outline-none" maxLength={500} />
+                      <button type="submit" aria-label="Save edit" className="rounded-lg bg-good/15 p-1.5 text-good"><Check size={16} /></button>
+                      <button type="button" aria-label="Cancel edit" onClick={() => setEditing(null)} className="rounded-lg bg-surface p-1.5 text-muted"><X size={16} /></button>
                     </form>
                   ) : (
-                    <div onClick={(e) => { e.stopPropagation(); setSelected(selected === m.id ? null : m.id); }} className={clsx('whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[15px] leading-snug', mine ? 'rounded-br-md bg-gradient-to-br from-blurple to-[#7c5cff] text-white shadow-lg shadow-blurple/20' : 'rounded-bl-md bg-ink-700 text-text')}>
-                      {m.deleted ? <em className="text-white/50">message deleted</em> : m.text}
+                    <div onClick={(e) => { e.stopPropagation(); setSelected(selected === m.id ? null : m.id); }} className={clsx('whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[15px] leading-snug', mine ? 'rounded-br-md bg-[#ececf1] text-[#141418]' : 'rounded-bl-md bg-surface text-fg')}>
+                      {m.deleted ? <em className="opacity-50">message deleted</em> : m.text}
                       {m.edited && !m.deleted && <span className="ml-1.5 text-[10px] opacity-60">(edited)</span>}
                     </div>
                   )}
                   {!m.deleted && !isEditing && (
-                    <div className={clsx('absolute -top-4 z-10 flex gap-0.5 rounded-full border border-white/10 bg-ink-800 p-0.5 shadow-lg transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
+                    <div className={clsx('absolute -top-4 z-10 flex gap-0.5 rounded-lg bg-raised p-0.5 shadow-lg ring-1 ring-line transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
                       <IconBtn label="Reply" onClick={() => onReply(m)}><CornerUpLeft size={13} /></IconBtn>
                       <IconBtn label="React" onClick={(e) => { e.stopPropagation(); setTmenu(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 70)); setPicker(picker === m.id ? null : m.id); }}><SmilePlus size={13} /></IconBtn>
                       <IconBtn label="Translate" onClick={(e) => { e.stopPropagation(); setPicker(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 140)); setTmenu(tmenu === m.id ? null : m.id); }}><Languages size={13} /></IconBtn>
@@ -177,48 +179,50 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                     </div>
                   )}
                   {tmenu === m.id && (
-                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max flex-col whitespace-nowrap rounded-xl border border-white/10 bg-ink-800 p-1 text-xs font-semibold shadow-xl', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-[7.5rem]' : 'top-full mt-1')} role="menu" aria-label="Translate">
-                      <button role="menuitem" onClick={() => void translate(m.id, 'brainrot')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">🧠 to brainrot</button>
-                      <button role="menuitem" onClick={() => void translate(m.id, 'plain')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">👴 to plain English</button>
-                      {isDry(m.text) && <button role="menuitem" onClick={() => void translate(m.id, 'dry')} className="rounded-lg px-3 py-1.5 text-left hover:bg-white/10">🔍 what they really meant</button>}
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max flex-col whitespace-nowrap rounded-xl bg-raised p-1 text-[13px] font-medium shadow-xl ring-1 ring-line', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-[7.5rem]' : 'top-full mt-1')} role="menu" aria-label="Translate">
+                      <button role="menuitem" onClick={() => void translate(m.id, 'brainrot')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">🧠 to brainrot</button>
+                      <button role="menuitem" onClick={() => void translate(m.id, 'plain')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">👴 to plain English</button>
+                      {isDry(m.text) && <button role="menuitem" onClick={() => void translate(m.id, 'dry')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">🔍 what they really meant</button>}
                     </div>
                   )}
                   {picker === m.id && (
-                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max gap-0.5 rounded-full border border-white/10 bg-ink-800 p-1 shadow-xl', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-12' : 'top-full mt-1')} role="menu" aria-label="Pick a reaction">
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max gap-0.5 rounded-xl bg-raised p-1 shadow-xl ring-1 ring-line', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-12' : 'top-full mt-1')} role="menu" aria-label="Pick a reaction">
                       {PICKER.map((e) => (
-                        <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-full px-1.5 py-1 text-lg transition hover:scale-125 hover:bg-white/10">{e}</button>
+                        <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-lg px-1.5 py-1 text-lg transition hover:scale-110 hover:bg-surface">{e}</button>
                       ))}
                     </div>
                   )}
                 </div>
                 <Reactions m={m} meId={meId} onReact={onReact} />
                 {translations[m.id] && (
-                  <div className="pop-in mt-1 flex max-w-full items-start gap-1.5 rounded-lg border border-dashed border-white/15 bg-ink-850/80 px-2.5 py-1.5 text-xs" role="note">
+                  <div className="pop-in mt-1.5 flex max-w-full items-start gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-xs ring-1 ring-line" role="note">
                     <span aria-hidden>{{ brainrot: '🧠', plain: '👴', dry: '🔍' }[translations[m.id]!.mode]}</span>
-                    {translations[m.id]!.error ? <span className="text-ember">{translations[m.id]!.error}</span> : <span className="break-words text-text/90"><i className="text-mute">{translations[m.id]!.mode === 'dry' ? 'what they really meant: ' : `${translations[m.id]!.mode}: `}</i>{translations[m.id]!.text}</span>}
-                    <button onClick={() => setTranslations(({ [m.id]: _gone, ...rest }) => rest)} aria-label="Dismiss translation" className="ml-1 text-mute hover:text-white"><X size={12} /></button>
+                    {translations[m.id]!.error ? <span className="text-bad">{translations[m.id]!.error}</span> : <span className="break-words text-fg"><i className="not-italic text-faint">{translations[m.id]!.mode === 'dry' ? 'what they really meant: ' : `${translations[m.id]!.mode}: `}</i>{translations[m.id]!.text}</span>}
+                    <button onClick={() => setTranslations(({ [m.id]: _gone, ...rest }) => rest)} aria-label="Dismiss translation" className="ml-1 text-faint hover:text-fg"><X size={12} /></button>
                   </div>
                 )}
-                {flash?.id === m.id && <span role="status" className="mt-1 rounded-lg bg-ember/15 px-2 py-0.5 text-xs text-ember">{flash.text}</span>}
-                <div className="mt-0.5 flex items-center gap-2 px-1 text-[10px] text-mute/80">
-                  <span>{clockTime(m.at)}</span>
-                  {(m.ohio ?? 0) >= 50 && !m.deleted && <span className={clsx('rounded px-1 font-mono', (m.ohio ?? 0) >= 85 ? 'bg-ember/20 text-ember' : 'bg-sun/15 text-sun')} title="Ohio level">🫩 ohio {m.ohio}%</span>}
-                </div>
+                {flash?.id === m.id && <span role="status" className="mt-1 rounded-lg bg-bad/10 px-2 py-0.5 text-xs text-bad">{flash.text}</span>}
+                {(mine || (m.ohio ?? 0) >= 50) && !m.deleted && (
+                  <div className="mt-1 flex items-center gap-2 px-1 text-[11px] text-faint">
+                    {mine && <span>{clockTime(m.at)}</span>}
+                    {(m.ohio ?? 0) >= 50 && <Chip tone={(m.ohio ?? 0) >= 85 ? 'bad' : 'warn'} className="font-mono">ohio {m.ohio}%</Chip>}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
         {thinking && (
-          <div className="pop-in mx-auto flex w-full max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-ink-800/80 px-4 py-3">
+          <div className="pop-in flex items-center gap-2.5 py-1 pl-1 text-[13px] text-muted">
             <ThinkingOrb state="composing" size={20} />
-            <span className="font-mono text-xs uppercase tracking-widest text-mute">{thinkingPersona.label} is cooking…</span>
+            {thinkingPersona.emoji} {thinkingPersona.label} is typing…
           </div>
         )}
         {typingNames.length > 0 && (
-          <div className="flex items-center gap-2 px-1 pt-1 text-xs text-mute">
+          <div className="flex items-center gap-2 px-1 pt-1 text-xs text-faint">
             <span className="inline-flex gap-0.5" aria-hidden>
               {[0, 1, 2].map((d) => (
-                <span key={d} className="size-1.5 animate-bounce rounded-full bg-blurple-soft" style={{ animationDelay: `${d * 120}ms` }} />
+                <span key={d} className="size-1.5 animate-bounce rounded-full bg-muted" style={{ animationDelay: `${d * 120}ms` }} />
               ))}
             </span>
             {typingNames.length === 1 ? `${typingNames[0]} is typing…` : `${typingNames.length} people are typing…`}
@@ -231,7 +235,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
             scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
             setUnread(0);
           }}
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-blurple px-3 py-1.5 text-xs font-semibold shadow-lg"
+          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-raised px-3 py-1.5 text-xs font-semibold shadow-lg ring-1 ring-line-strong"
         >
           <ArrowDown size={14} /> {unread} new
         </button>
@@ -242,7 +246,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
 
 function IconBtn({ label, onClick, danger, children }: { label: string; onClick: (e: React.MouseEvent) => void; danger?: boolean; children: React.ReactNode }) {
   return (
-    <button aria-label={label} title={label} onClick={onClick} className={clsx('rounded-full p-1.5 text-mute transition hover:bg-white/10', danger ? 'hover:text-ember' : 'hover:text-white')}>
+    <button aria-label={label} title={label} onClick={onClick} className={clsx('rounded-md p-1.5 text-muted transition-colors hover:bg-surface', danger ? 'hover:text-bad' : 'hover:text-fg')}>
       {children}
     </button>
   );
@@ -255,48 +259,42 @@ function Reactions({ m, meId, onReact }: { m: ChatMessage; meId?: string; onReac
   return (
     <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
       {m.aiReactions.map((e) => (
-        <span key={`ai-${e}`} title="the AI reacted" className="pop-in rounded-full border border-magenta/40 bg-ink-800 px-1.5 py-0.5 text-sm shadow">{e}</span>
+        <span key={`ai-${e}`} title="the AI reacted" className="pop-in rounded-full bg-raised px-1.5 py-0.5 text-sm ring-1 ring-accent/40">{e}</span>
       ))}
       {user.map(([e, ids]) => (
-        <button key={e} onClick={() => onReact(m.id, e)} aria-pressed={!!meId && ids.includes(meId)} className={clsx('pop-in flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-sm shadow', meId && ids.includes(meId) ? 'border-blurple bg-blurple/25' : 'border-white/10 bg-ink-800')}>
-          {e}<span className="font-mono text-[11px] text-mute">{ids.length}</span>
+        <button key={e} onClick={() => onReact(m.id, e)} aria-pressed={!!meId && ids.includes(meId)} className={clsx('pop-in flex items-center gap-1 rounded-full px-1.5 py-0.5 text-sm ring-1 transition-colors', meId && ids.includes(meId) ? 'bg-accent/12 ring-accent/50' : 'bg-raised ring-line hover:ring-line-strong')}>
+          {e}<span className="font-mono text-[11px] text-muted">{ids.length}</span>
         </button>
       ))}
     </div>
   );
 }
 
-function AiCard({ m, latest, onReact, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; meId?: string }) {
+function AiCard({ m, onReact, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; meId?: string }) {
   const persona = PERSONAS[m.persona ?? 'gremlin'];
   const sticker = m.trigger ? STICKER[m.trigger] : undefined;
   const gif = m.gif && isGiphy(m.gif) ? m.gif : undefined;
-  const card = (
-    <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-ink-800/95 px-4 py-3" style={{ borderRadius: 16 }}>
-      <span className="text-2xl leading-none" aria-hidden>{persona.emoji}</span>
-      <div className="min-w-0 flex-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-magenta">
-          {persona.label}
-          {m.trigger && <span className="text-mute"> · {TRIGGER_LABEL[m.trigger] ?? m.trigger}</span>}
+  const rule = m.side === 'ollama' ? 'bg-ollama' : 'bg-accent';
+  const tone = m.side === 'ollama' ? 'text-ollama' : 'text-accent';
+  const via = m.model && m.model !== 'canned' ? MODEL_LABEL[m.model] ?? m.model : undefined;
+  return (
+    <div className="pop-in my-3 flex gap-3 pr-1" data-ai-line>
+      <span className={clsx('w-[3px] shrink-0 rounded-full', rule)} aria-hidden />
+      <div className="min-w-0 flex-1 py-0.5">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs" title={via ? `written by ${via}` : undefined} data-ai-label>
+          <span aria-hidden>{persona.emoji}</span>
+          <span className={clsx('font-semibold', tone)}>{persona.label}</span>
+          {m.trigger && <span className="text-faint">· {TRIGGER_LABEL[m.trigger] ?? m.trigger}</span>}
+          {m.side && <Chip tone={m.side}>{SIDE_LABEL[m.side]}</Chip>}
         </div>
-        <p className="mt-0.5 break-words text-base font-medium leading-snug">{m.text}</p>
+        <p className="mt-1 break-words text-[15px] font-medium leading-snug text-fg">{m.text}</p>
         {gif && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={gif} alt="reaction gif" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="mt-2 max-h-44 rounded-lg border border-white/10" />
+          <img src={gif} alt="reaction gif" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="mt-2 max-h-44 rounded-xl ring-1 ring-line" />
         )}
+        <div className="mt-1"><Reactions m={m} meId={meId} onReact={onReact} /></div>
       </div>
-      {sticker && <span className="-mr-1 -mt-1 shrink-0 -rotate-6 text-5xl leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" aria-hidden>{sticker}</span>}
-    </div>
-  );
-  return (
-    <div className="pop-in mx-auto my-2 w-full max-w-xl">
-      {latest ? (
-        <BorderBeam size="md" colorVariant="colorful" strength={0.85} duration={3.4}>
-          {card}
-        </BorderBeam>
-      ) : (
-        card
-      )}
-      <Reactions m={m} meId={meId} onReact={onReact} />
+      {sticker && <span className="shrink-0 -rotate-6 self-start text-3xl leading-none" aria-hidden>{sticker}</span>}
     </div>
   );
 }

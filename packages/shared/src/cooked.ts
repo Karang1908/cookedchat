@@ -2,7 +2,7 @@ import type { TriggerKind } from './types.js';
 
 /** how much each trigger heats the room */
 export const COOKED_PUSH: Partial<Record<TriggerKind, number>> = {
-  six_seven: 25,
+  six_seven: 20,
   typing_drama: 6,
   typed_deleted: 4,
   slow_reply: 5,
@@ -14,10 +14,11 @@ export const COOKED_PUSH: Partial<Record<TriggerKind, number>> = {
   left_on_read: 4,
 };
 
-export const COOKED_PER_MESSAGE = 3;
+/** calibrated so ordinary chat warms the room but only real chaos (bursts, 67 spam, arguments) fries the UI */
+export const COOKED_PER_MESSAGE = 2;
 export const COOKED_CAPS_BONUS = 4;
 /** per second of real time */
-export const COOKED_DECAY_PER_SEC = 0.8;
+export const COOKED_DECAY_PER_SEC = 1;
 export const COOKED_REARM_BELOW = 60;
 
 export interface CookedState {

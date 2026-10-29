@@ -41,9 +41,9 @@ test('cooked meter: decays toward 0, meltdown fires once until re-armed', () => 
   assert.equal(shouldMeltdown(s), true);
   s = { ...s, armed: false };
   assert.equal(shouldMeltdown(s), false);
-  s = decayCooked(s, 10_000); // -8 -> 92, still hot
+  s = decayCooked(s, 10_000); // -10 -> 90, still hot
   assert.equal(s.armed, false);
-  s = decayCooked(s, 50_000); // -40 -> 52, cooled
+  s = decayCooked(s, 35_000); // -35 -> 55, cooled
   assert.equal(s.armed, true);
   assert.equal(decayCooked({ value: 1, armed: true }, 60_000).value, 0);
 });

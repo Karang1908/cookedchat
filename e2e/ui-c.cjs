@@ -36,6 +36,8 @@ const imgInfo = (page, sel) => page.locator(sel).evaluate(async (img) => {
   await actx.addInitScript(() => sessionStorage.setItem('cooked.adminKey', 'letmein'));
   const admin = await actx.newPage(); watch(admin, 'admin');
   await admin.goto(`${WEB}/admin/${code}`);
+  // these flows test individual roasts, so switch the AI's speaking budget off (what you would do on stage)
+  await admin.getByLabel('AI speaks every N human messages').focus(); await admin.keyboard.press('Home'); await sleep(250);
   await admin.getByRole('button', { name: /add Aman, Riya/i }).click(); await sleep(300);
   await admin.getByRole('button', { name: 'demo speed' }).click(); await sleep(300);
 
@@ -79,6 +81,7 @@ const imgInfo = (page, sel) => page.locator(sel).evaluate(async (img) => {
   console.log('meme rate limit reason shown');
 
   // ---- 3. Wrapped
+  await aman.getByRole('radio', { name: 'Games', exact: true }).click(); // desktop: games live behind the Games tab
   await aman.getByRole('button', { name: /my Brainrot Wrapped/ }).click();
   await aman.getByText(/You are \d+% /).first().waitFor({ timeout: 6000 });
   await aman.locator('img[alt$="Brainrot Wrapped card"]').first().waitFor();
@@ -87,7 +90,7 @@ const imgInfo = (page, sel) => page.locator(sel).evaluate(async (img) => {
   assert.deepEqual([wrapped.w, wrapped.h], [1080, 1350]); assert.ok(wrapped.colors > 40);
   const pcts = (await aman.getByText(/You are \d+% /).first().innerText()).match(/\d+(?=%)/g).map(Number);
   assert.equal(pcts.reduce((a, b) => a + b, 0), 100);
-  const postRiya = () => aman.getByRole('button', { name: /post Riya's Brainrot Wrapped/ }).click();
+  const postRiya = () => aman.getByRole('button', { name: /post Riya's Brainrot Wrapped/i }).click();
   await aman.getByRole('button', { name: 'Riya profile' }).first().click();
   await postRiya();
   await aman.getByRole('alert').filter({ hasText: /one Wrapped at a time/ }).waitFor({ timeout: 4000 });
@@ -119,18 +122,18 @@ const imgInfo = (page, sel) => page.locator(sel).evaluate(async (img) => {
 
   // ---- 5. rival commentators
   await admin.getByRole('combobox').filter({ hasText: 'none' }).selectOption('boomer');
-  await aman.getByText(/rival: .*Confused Boomer argues back/).waitFor({ timeout: 4000 });
+  await aman.getByText(/rival: .*Confused Boomer argues back/i).waitFor({ timeout: 4000 });
   await sleep(4500); // let the AI cooldown pass: it stays quiet on purpose
   await box(aman).fill("wait I'll reply later"); await box(aman).press('Enter');
   await aman.getByRole('log').getByText('Confused Boomer').first().waitFor({ timeout: 8000 });
-  const labels = await aman.getByRole('log').locator('div.font-mono', { hasText: /Gen Z Gremlin|Confused Boomer/ }).allInnerTexts();
+  const labels = await aman.getByRole('log').locator('[data-ai-label]', { hasText: /Gen Z Gremlin|Confused Boomer/ }).allInnerTexts();
   console.log('commentator labels:', [...new Set(labels.map((l) => l.split('\n')[0].trim()))].join(' + '));
   assert.ok(labels.some((l) => /Gen Z Gremlin/i.test(l)) && labels.some((l) => /Confused Boomer/i.test(l)));
 
   // ---- 6. lore (forced: the organic callback is random)
   await admin.getByRole('button', { name: 'lore', exact: true }).click();
-  await aman.locator('div.font-mono', { hasText: /· lore/i }).first().waitFor({ timeout: 8000 });
-  console.log('lore callback:', (await aman.locator('div.font-mono', { hasText: /· lore/i }).last().locator('xpath=following-sibling::p').innerText()).slice(0, 90));
+  await aman.locator('[data-ai-label]', { hasText: /· lore/i }).first().waitFor({ timeout: 8000 });
+  console.log('lore callback:', (await aman.locator('[data-ai-label]', { hasText: /· lore/i }).last().locator('xpath=following-sibling::p').innerText()).slice(0, 90));
 
   await aman.screenshot({ path: `${SHOTS}/c1-desktop.png` });
   await riya.getByRole('button', { name: 'Chat', exact: true }).click(); await sleep(300);

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import '@fontsource/anton/400.css';
+import '@fontsource/comic-neue/400.css';
+import '@fontsource/comic-neue/700.css';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import './globals.css';

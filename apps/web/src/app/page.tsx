@@ -2,29 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'motion/react';
-import { BorderBeam } from 'border-beam';
-import { Eye, Flame, Gauge, Music2, Sparkles, UserRound } from 'lucide-react';
-import { Goblin3D } from '@/components/goblin3d';
-import { MetalCta } from '@/components/metal-cta';
+import { ArrowRight, Clock, Eye, Flame, MessageSquareOff, Scale, Sparkles, Swords, Trophy } from 'lucide-react';
+import { DemoChat } from '@/components/demo-chat';
+import { Button, Wordmark, fieldCls } from '@/components/ui';
 import { createSocket } from '@/lib/socket';
 
-const DEMO_LINES = [
-  { who: 'Gen Z Gremlin', text: 'bro went to the shadow realm for 4 hours 💀' },
-  { who: 'Sports Commentator', text: 'AND HE LEFT HER ON READ, WHAT A PLAY FROM DEV 🎙️' },
-  { who: 'Nature Documentary', text: 'Here we see the human in his natural habitat, ignoring a text. 🦁' },
-  { who: 'Gen Z Gremlin', text: 'fanum tax collected 🍟  -50 aura' },
-  { who: 'Passive-Aggressive Mom', text: "No, it's fine. Nobody has to reply. I'll just sit here. 👩" },
-  { who: 'Gen Z Gremlin', text: 'we all saw you type that essay 👁️' },
-];
-
-const FEATURES = [
-  { icon: Eye, title: 'It interrupts', body: 'Typing drama, dry texts, left on read, 9 messages in a row. It saw all of it.' },
-  { icon: Sparkles, title: 'Aura with receipts', body: 'Every point gained or lost is logged with the exact message that caused it.' },
-  { icon: Flame, title: 'Deep fry UI', body: 'The more unhinged the chat gets, the more the interface degrades. It heals when you calm down.' },
-  { icon: Music2, title: 'Soundboard + effects', body: 'Vine boom, airhorn, screen shake, emoji rain. 67 triggers a full meltdown.' },
-  { icon: UserRound, title: 'Pick a voice', body: 'Gremlin, sports commentator, nature documentary, passive-aggressive mom, and more.' },
-  { icon: Gauge, title: 'Cooked-o-meter', body: 'Hit 100% and the whole room melts down together. IT’S OVER.' },
+const NOTICES = [
+  { icon: Clock, title: 'Reply speed', body: 'The 4-hour "lol". The suspiciously instant reply to one person only.' },
+  { icon: Eye, title: 'Typing drama', body: 'Typed for a minute, sent "ok". The bubble that appeared and vanished.' },
+  { icon: MessageSquareOff, title: 'Dry texts', body: '"k" vs "k." vs "OKAY". It hears the difference.' },
+  { icon: Flame, title: 'Unhinged takes', body: 'Every message gets an Ohio score. Big claims get put to a vote.' },
+  { icon: Trophy, title: 'Aura, with receipts', body: 'Every point gained or lost is logged with the exact message that caused it.' },
+  { icon: Swords, title: 'Games', body: 'Rizz battles, hot takes, a betting market on who replies first.' },
 ];
 
 export default function Landing() {
@@ -32,17 +21,8 @@ export default function Landing() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [code, setCode] = useState('');
-  const [i, setI] = useState(0);
   const mounted = useRef(true);
-
-  useEffect(() => {
-    mounted.current = true;
-    const t = setInterval(() => setI((n) => (n + 1) % DEMO_LINES.length), 3200);
-    return () => {
-      mounted.current = false;
-      clearInterval(t);
-    };
-  }, []);
+  useEffect(() => () => void (mounted.current = false), []);
 
   const create = () => {
     setBusy(true);
@@ -55,7 +35,7 @@ export default function Landing() {
         setErr(m);
       }
     };
-    const timer = setTimeout(() => fail('The server is asleep (free tier). Give it ~30 seconds and try again.'), 12_000);
+    const timer = setTimeout(() => fail('The server is waking up (free tier). Give it ~30 seconds and try again.'), 12_000);
     socket.on('connect', () => {
       socket.emit('room:create', { tzOffsetMin: -new Date().getTimezoneOffset() }, (a) => {
         clearTimeout(timer);
@@ -65,71 +45,99 @@ export default function Landing() {
       });
     });
   };
+  const join = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (/^[A-Za-z]{4}$/.test(code)) router.push(`/r/${code.toUpperCase()}`);
+  };
 
-  const demo = DEMO_LINES[i]!;
   return (
-    <main className="relative mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-8">
-      <nav className="flex items-center justify-between">
-        <span className="font-display text-2xl uppercase tracking-wider">Cooked <span className="text-blurple-soft">Chat</span> 💀</span>
-        <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-mute">hackathon build</span>
-      </nav>
+    <div className="min-h-dvh">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+        <Wordmark />
+        <form onSubmit={join} className="flex items-center gap-2">
+          <input value={code} onChange={(e) => setCode(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase())} placeholder="CODE" aria-label="Room code" autoCapitalize="characters" className={`${fieldCls} h-9 w-[5.5rem] text-center font-mono tracking-[0.2em]`} />
+          <Button size="sm" disabled={code.length !== 4}>Join</Button>
+        </form>
+      </header>
 
-      <section className="grid items-center gap-6 pt-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12">
-        <div>
-          <h1 className="font-display text-[clamp(2.75rem,7.2vw,5.5rem)] uppercase leading-[0.9] tracking-wide">
-            the AI that <span className="bg-gradient-to-r from-blurple-soft via-magenta to-ember bg-clip-text text-transparent">lives in your group chat</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-lg text-mute">
-            It doesn&apos;t wait to be asked. It watches how you actually behave &mdash; reply speed, typing drama, dry texts &mdash; then interrupts, roasts, and scores your aura. In current brainrot.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <MetalCta>
-              <button onClick={create} disabled={busy} className="rounded-full bg-ink-900 px-8 py-4 font-display text-2xl uppercase tracking-wider text-white transition enabled:active:scale-95 disabled:opacity-60">
-                {busy ? 'Summoning…' : 'Start a room'}
-              </button>
-            </MetalCta>
-            <form
-              className="flex items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (/^[A-Za-z]{4}$/.test(code)) router.push(`/r/${code.toUpperCase()}`);
-              }}
-            >
-              <input value={code} onChange={(e) => setCode(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase())} placeholder="CODE" aria-label="Room code" inputMode="text" autoCapitalize="characters" className="w-28 rounded-full border border-white/10 bg-ink-800 px-5 py-3.5 text-center font-mono text-lg tracking-[0.3em] outline-none transition focus:border-blurple" />
-              <button disabled={code.length !== 4} className="rounded-full border border-white/15 px-5 py-3.5 font-semibold transition enabled:hover:bg-white/10 disabled:opacity-40">Join</button>
-            </form>
+      <main>
+        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-16">
+          <div>
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-xs font-medium text-muted">
+              <Sparkles size={13} className="text-accent" /> An AI that lives in your group chat
+            </p>
+            <h1 className="max-w-xl text-[clamp(2.4rem,5.4vw,4rem)] font-bold leading-[1.04] tracking-[-0.035em]">
+              Everyone notices the dry “k”. Now something says it out loud.
+            </h1>
+            <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted">
+              Cooked is a group chat with an AI member. It watches how people actually text, the 4-hour reply, the typing bubble that vanishes, the “k” after a paragraph, and roasts it. Then it keeps score.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button variant="primary" size="lg" onClick={create} disabled={busy}>
+                {busy ? 'Opening a room…' : 'Start a room'} <ArrowRight size={17} />
+              </Button>
+              <a href="#how" className="text-sm font-semibold text-muted transition-colors hover:text-fg">How it works</a>
+            </div>
+            {err && <p role="alert" className="mt-3 text-sm text-warn">{err}</p>}
+            <p className="mt-6 text-xs text-faint">Free, no sign-up. Everyone is told the AI roasts when they join. It roasts behavior, never identity.</p>
           </div>
-          {err && <p role="alert" className="mt-3 text-sm text-sun">{err}</p>}
-          <p className="mt-4 text-xs text-mute">Everyone is told the AI roasts when they join. It roasts behavior, never identity.</p>
-        </div>
+          <DemoChat />
+        </section>
 
-        <div className="relative">
-          <Goblin3D heat={0.15} className="mx-auto h-[300px] w-full max-w-[420px] sm:h-[400px]" />
-          <div className="mx-auto -mt-4 min-h-[104px] max-w-sm">
-            <AnimatePresence mode="wait">
-              <motion.div key={i} initial={{ opacity: 0, y: 14, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.28 }}>
-                <BorderBeam size="md" colorVariant="colorful" strength={0.8} duration={3}>
-                  <div className="rounded-2xl border border-white/10 bg-ink-800/95 px-4 py-3" style={{ borderRadius: 16 }}>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-magenta">{demo.who}</div>
-                    <p className="mt-0.5 text-base font-medium leading-snug">{demo.text}</p>
+        <section className="border-t border-line bg-panel/60">
+          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+            <h2 className="text-2xl font-bold tracking-tight">What it notices</h2>
+            <div className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+              {NOTICES.map(({ icon: Icon, title, body }) => (
+                <div key={title} className="flex gap-3.5">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface ring-1 ring-line"><Icon size={17} className="text-accent" /></span>
+                  <div>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
                   </div>
-                </BorderBeam>
-              </motion.div>
-            </AnimatePresence>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="mt-16 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Features">
-        {FEATURES.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="glass rounded-2xl p-5 transition hover:border-blurple/50">
-            <Icon className="text-blurple-soft" size={22} />
-            <h3 className="mt-3 font-display text-2xl uppercase tracking-wide">{title}</h3>
-            <p className="mt-1 text-sm text-mute">{body}</p>
+        <section id="how" className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">How it works</h2>
+            <ol className="mt-6 space-y-5">
+              {[
+                ['Start a room', 'You get a four-letter code and a QR code.'],
+                ['Everyone scans in', 'Pick a name and a creature. No accounts.'],
+                ['Just chat', 'The AI watches, reacts, keeps the aura board, and drops in when something is actually worth saying.'],
+              ].map(([t, b], i) => (
+                <li key={t} className="flex gap-4">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-accent/12 font-mono text-xs font-bold text-accent">{i + 1}</span>
+                  <div>
+                    <div className="font-semibold">{t}</div>
+                    <div className="mt-0.5 text-sm text-muted">{b}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
-        ))}
-      </section>
-    </main>
+          <div className="rounded-2xl border border-line bg-panel p-6">
+            <div className="flex items-center gap-2 text-sm font-semibold"><Scale size={16} className="text-accent" /> It knows when to shut up</div>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Comedy is timing. The AI speaks about once every few messages and never twice in a row. Most of the time it just reacts with an emoji. The big moments (a 67, a mog, the room hitting 100% cooked) always get through.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Running a demo? The admin panel lets you tune how chatty it is, warp the room clock, stage any moment on cue, and put two AIs (Groq vs Ollama) in the room to roast each other.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-faint sm:px-8">
+          <Wordmark className="text-sm" />
+          <span>Roasts behavior, never identity.</span>
+        </div>
+      </footer>
+    </div>
   );
 }

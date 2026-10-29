@@ -1,23 +1,33 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-ink-950: #07071a;
-  --color-ink-900: #0c0c24;
-  --color-ink-850: #10102e;
-  --color-ink-800: #15153a;
-  --color-ink-700: #1d1d4a;
-  --color-ink-600: #2a2a60;
-  --color-blurple: #5865f2;
-  --color-blurple-soft: #8b94ff;
-  --color-mint: #57f2a0;
-  --color-magenta: #eb459e;
-  --color-sun: #fee75c;
-  --color-ember: #ff5a4d;
-  --color-text: #f2f3ff;
-  --color-mute: #9a9cc8;
-  --font-display: 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
+  /* surfaces: flat, near-black, a step apart */
+  --color-bg: #0c0c0f;
+  --color-panel: #111115;
+  --color-surface: #18181d;
+  --color-raised: #1e1e24;
+  --color-line: #26262e;
+  --color-line-strong: #34343e;
+  /* text */
+  --color-fg: #ececf1;
+  --color-muted: #9b9ba7;
+  --color-faint: #6c6c78;
+  /* one accent: cooked */
+  --color-accent: #ff6a3d;
+  --color-accent-hover: #ff8259;
+  --color-accent-ink: #1a0d08;
+  /* meaning */
+  --color-good: #3ccf91;
+  --color-bad: #ff5c5c;
+  --color-warn: #f2c14e;
+  /* duel sides */
+  --color-groq: #ff6a3d;
+  --color-ollama: #7fb0ff;
+
   --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+  /* loud moments only: meltdown, posters, BREAKING */
+  --font-display: 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
 }
 
 :root {
@@ -31,32 +41,29 @@ body {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1100px 560px at 8% -12%, rgb(88 101 242 / 0.28), transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, rgb(235 69 158 / 0.18), transparent 55%),
-    radial-gradient(800px 500px at 50% 120%, rgb(87 242 160 / 0.08), transparent 60%),
-    var(--color-ink-950);
-  background-attachment: fixed;
-  color: var(--color-text);
+  background: var(--color-bg);
+  color: var(--color-fg);
   font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
 
 ::selection {
-  background: rgb(88 101 242 / 0.5);
+  background: rgb(255 106 61 / 0.35);
 }
 
-.glass {
-  background: rgb(21 21 58 / 0.62);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgb(255 255 255 / 0.08);
+/* in the base layer so utilities (e.g. focus-visible:outline-none) can override it: unlayered CSS always beats layers */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(139 148 255 / 0.35) transparent;
+  scrollbar-color: var(--color-line-strong) transparent;
 }
 
 .safe-b {
@@ -72,12 +79,12 @@ body {
 }
 #stage[data-fry='2'] {
   filter: saturate(1.55) contrast(1.12);
-  font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', cursive;
+  font-family: 'Comic Sans MS', 'Comic Neue', var(--font-sans);
   animation: fry-wobble 2.6s ease-in-out infinite;
 }
 #stage[data-fry='3'] {
   filter: saturate(2.2) contrast(1.4) brightness(1.04);
-  font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', cursive;
+  font-family: 'Comic Sans MS', 'Comic Neue', var(--font-sans);
   animation: fry-wobble 0.9s ease-in-out infinite;
 }
 #stage[data-fry='3'] .avatar-spin {
