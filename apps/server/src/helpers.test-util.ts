@@ -47,11 +47,14 @@ export class FakeWriter implements CommentWriter {
   }
 }
 
+/** tz offset that puts a room's wall clock at midday: at UTC 03:xx a UTC room's first tick fires the 3am Tung Tung, which takes the AI's turn */
+export const middayTz = () => ((12 - new Date().getUTCHours() + 24) % 24) * 60;
+
 export function setup() {
   const bus = new FakeBus();
   const writer = new FakeWriter();
   const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0 });
-  const room = new Room('TEST', 0);
+  const room = new Room('TEST', middayTz());
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
   // most tests check what a single message triggers; the speaking budget has its own tests (engine-e)
   room.settings.aiEvery = 0;

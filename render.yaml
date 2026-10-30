@@ -1,3 +1,5 @@
+# Render Blueprint: New → Blueprint → this repo. Creates both services.
+# Fill the sync:false values when prompted, or paste the blocks from the root .env.example.
 services:
   - type: web
     name: cookedchat-server
@@ -6,16 +8,18 @@ services:
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @cooked/server build
     startCommand: pnpm --filter @cooked/server start
     healthCheckPath: /health
+    buildFilter:
+      paths: [apps/server/**, packages/shared/**, package.json, pnpm-lock.yaml, pnpm-workspace.yaml]
     envVars:
       - key: ADMIN_KEY
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      - key: DATABASE_URL
-        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: OLLAMA_API_KEY
+        sync: false
+      - key: DATABASE_URL
         sync: false
       - key: GIPHY_API_KEY
         sync: false
@@ -23,3 +27,21 @@ services:
         value: "true"
       - key: LLM_ORDER
         value: groq-120b,groq-20b,ollama
+      - key: NODE_VERSION
+        value: "22"
+
+  - type: web
+    name: cookedchat-web
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @cooked/web build
+    startCommand: pnpm --filter @cooked/web start
+    healthCheckPath: /
+    buildFilter:
+      paths: [apps/web/**, packages/shared/**, package.json, pnpm-lock.yaml, pnpm-workspace.yaml]
+    envVars:
+      # baked in at build time: the server's public URL, e.g. https://cookedchat-server.onrender.com
+      - key: NEXT_PUBLIC_SERVER_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "22"

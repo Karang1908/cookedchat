@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GiphyFinder, isGiphyUrl } from './features/gif.js';
-import { FakeBus, FakeWriter } from './helpers.test-util.js';
+import { FakeBus, FakeWriter, middayTz } from './helpers.test-util.js';
 import { Engine } from './engine.js';
 import { Room } from './room.js';
 import { NullStore } from './store.js';
@@ -35,7 +35,7 @@ function build(gifs?: { find(q: string): Promise<string | null> }) {
   const bus = new FakeBus();
   const writer = new FakeWriter();
   const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0, gifs });
-  const room = new Room('TEST', 0);
+  const room = new Room('TEST', middayTz());
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
   room.settings.aiEvery = 0;
   const add = (id: string, name: string) => (engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`), id);
@@ -132,7 +132,7 @@ test('staged moments always land, even when the dice and the cooldown say stay q
   const bus = new FakeBus();
   const writer = new FakeWriter();
   const engine = new Engine({ bus, store: new NullStore(), writer, rng: () => 0.99 });
-  const room = new Room('TEST', 0);
+  const room = new Room('TEST', middayTz());
   const add = (id: string, name: string) => (engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`), id);
   const a = add('a', 'Aman');
   const r = engine.send(room, a, 'k');

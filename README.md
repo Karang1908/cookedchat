@@ -29,15 +29,17 @@ Real-client end-to-end suites live in [`e2e/`](e2e/README.md).
 
 ## Deploy
 
-Two pieces: the web app on **Vercel**, the realtime server on **Render** (Vercel can't hold WebSockets). Optional: **Supabase** for persistence.
+Everything runs on **Render** (two free web services from [`render.yaml`](render.yaml)). Optional: **Supabase** for persistence, **UptimeRobot** to keep the server awake.
 
-1. **Supabase** (optional): run `supabase/migrations/*.sql` in the SQL editor, then copy the *Session pooler* connection string.
-2. **Render**: New → Blueprint → this repo (uses `render.yaml`). In Environment, paste `apps/server/.env.example` and fill in `ADMIN_KEY`, `GROQ_API_KEY` / `OLLAMA_API_KEY`, `DATABASE_URL`. Copy the service URL.
-3. **Vercel**: Import this repo, set **Root Directory = `apps/web`**, then paste the root [`.env.example`](.env.example) into Environment Variables with `NEXT_PUBLIC_SERVER_URL` = your Render URL. Deploy.
-4. Back on Render, set `CORS_ORIGINS` to your Vercel URL.
-5. Point UptimeRobot at `https://<service>.onrender.com/health` every 5 minutes so the free instance stays awake.
+1. **Supabase** (optional): run `supabase/migrations/0001_init.sql` then `0002_features.sql` in the SQL editor, then copy the *Session pooler* URI from Connect.
+2. **Render**: New → Blueprint → this repo. It creates `cookedchat-server` and `cookedchat-web`.
+3. Open the root [`.env.example`](.env.example). On each service, use Environment → *Add from .env*: paste **block 1** into `cookedchat-server` and **block 2** into `cookedchat-web`. Then replace every `REPLACE_ME` / `xxxx` value with a real one. Leftover placeholders are ignored, and the server logs which ones are still unfilled.
+4. Cross-link the two URLs. Set `CORS_ORIGINS` on the server to the web URL, and `NEXT_PUBLIC_SERVER_URL` on the web to the server URL. If Render added a suffix to a name, use the real URLs. `NEXT_PUBLIC_SERVER_URL` is baked into the build, so redeploy the web after changing it.
+5. Point UptimeRobot at `https://cookedchat-server.onrender.com/health` every 5 minutes.
 
-Not exercised from here: the steps above are standard but have not been run against real Render/Vercel/Supabase accounts.
+**Free-tier hours:** Render gives about 750 free instance hours a month per workspace, which covers one always-on service. Keep only the server pinged. The web sleeps when idle, and its first load after a nap takes about 30–60s, so open it a minute before the demo. Pinging both would use up the month's hours around day 16.
+
+Not exercised from here: these steps have not been run against real Render or Supabase accounts.
 
 ## Balance and the AI duel
 
