@@ -63,12 +63,16 @@ export function openAiCompatProvider(o: { name: string; baseUrl: string; apiKey:
   };
 }
 
-/** Ollama Cloud native API: POST {base}/api/chat, Bearer key, model "gpt-oss:120b". */
+/**
+ * Ollama Cloud native API: POST {base}/api/chat, Bearer key, model e.g. "gemma4:31b".
+ * `think` takes levels only on gpt-oss; Gemma 4 takes true/false (default false), and thinking would eat the latency budget.
+ */
 export function ollamaProvider(o: { name: string; baseUrl: string; apiKey: string; model: string }): LlmProvider {
+  const think = o.model.startsWith('gpt-oss') ? 'low' : false;
   return {
     name: o.name,
     async complete(messages, signal) {
-      const json = await postJson(`${o.baseUrl}/api/chat`, o.apiKey, { model: o.model, messages, stream: false, think: 'low' }, signal);
+      const json = await postJson(`${o.baseUrl}/api/chat`, o.apiKey, { model: o.model, messages, stream: false, think }, signal);
       const text = json?.message?.content;
       if (typeof text !== 'string' || !text.trim()) throw new ProviderError('empty completion');
       return text;

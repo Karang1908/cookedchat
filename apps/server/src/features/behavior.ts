@@ -63,7 +63,7 @@ export function analyze(room: Room, member: Member, msg: ChatMessage, f: MsgFact
     const heated = recent.filter((m) => capsRatio(m.text) > 0.6 || /[!?]/.test(m.text)).length;
     if (flips >= 5 && heated >= 3) {
       room.lastMewingAt = Date.now();
-      hits.push({ kind: 'mewing', fact: 'is in a heated argument' });
+      hits.push({ kind: 'crash_out', fact: 'is crashing out in a heated argument' });
     }
   }
 

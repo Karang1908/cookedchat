@@ -19,6 +19,8 @@ services:
         sync: false
       - key: OLLAMA_API_KEY
         sync: false
+      - key: OLLAMA_MODEL
+        value: gemma4:31b
       - key: DATABASE_URL
         sync: false
       - key: GIPHY_API_KEY

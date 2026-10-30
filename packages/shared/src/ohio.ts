@@ -1,6 +1,9 @@
-import { SLANG_TERMS } from './slang.js';
+import { SLANG_TERMS, UNC_SLANG } from './slang.js';
 
-const BRAINROT = new Set(SLANG_TERMS[3].concat(SLANG_TERMS[2]).map((t) => t.toLowerCase()));
+// expired slang still counts: "skibidi" is peak Ohio even if it costs you aura
+// whole words: "ate" must not match "great", "unc" must not match "uncle"
+const BRAINROT = [...new Set([...SLANG_TERMS[3], ...SLANG_TERMS[2], ...UNC_SLANG].map((t) => t.toLowerCase()))]
+  .map((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`));
 const EMOJI = /\p{Extended_Pictographic}/gu;
 
 /**
@@ -14,7 +17,7 @@ export function ohioScore(text: string): number {
   let score = 5;
 
   let terms = 0;
-  for (const term of BRAINROT) if (lower.includes(term)) terms++;
+  for (const re of BRAINROT) if (re.test(lower)) terms++;
   score += Math.min(30, terms * 12);
   if (/\bohio\b/.test(lower)) score += 25;
 

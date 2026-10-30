@@ -4,9 +4,12 @@ import { DEFAULT_SETTINGS, DEFAULT_TIMINGS } from '@cooked/shared';
 import type { AuraEntry, AvatarType, ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { Room } from './room.js';
 import type { RoomExtras } from './room.js';
+import { SCHEMA } from './schema.js';
 
 /** Persistence port. The engine never awaits it: a DB outage must not stop the chat. */
 export interface Store {
+  /** true when rooms survive a restart (and an evicted room can be reloaded) */
+  readonly persistent: boolean;
   saveRoom(room: Room): void;
   saveMember(code: string, m: Member): void;
   saveMessage(code: string, m: ChatMessage): void;
@@ -18,6 +21,7 @@ export interface Store {
 }
 
 export class NullStore implements Store {
+  readonly persistent: boolean = false;
   saveRoom() {}
   saveMember() {}
   saveMessage() {}
@@ -31,6 +35,7 @@ export class NullStore implements Store {
 }
 
 export class PgStore implements Store {
+  readonly persistent = true;
   private readonly log = new Logger('PgStore');
   private readonly pool: pg.Pool;
   /** writes run strictly in order so a row never lands before the room it points at */
@@ -39,6 +44,8 @@ export class PgStore implements Store {
   constructor(url: string, ssl: boolean) {
     this.pool = new pg.Pool({ connectionString: url, max: 4, ssl: ssl ? { rejectUnauthorized: false } : false });
     this.pool.on('error', (e) => this.log.warn(`pool error: ${e.message}`));
+    // first link of the write chain: nothing is written or loaded before the tables exist
+    this.chain = this.pool.query(SCHEMA).then(() => this.log.log('schema ready')).catch((e: Error) => this.log.error(`schema setup failed: ${e.message}`));
   }
 
   private enqueue(sql: string, params: unknown[]): void {

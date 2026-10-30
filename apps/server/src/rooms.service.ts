@@ -44,6 +44,16 @@ export class RoomsService implements OnModuleDestroy {
     throw new Error('could not allocate a room code');
   }
 
+  get persistent(): boolean {
+    return this.store.persistent;
+  }
+
+  /** Drops an idle room from memory. With a database it is reloaded on the next join; without one it is gone for good. */
+  evict(room: Room): void {
+    if (room.extrasDirty) this.store.saveExtras(room);
+    this.rooms.delete(room.code);
+  }
+
   async onModuleDestroy() {
     await this.store.close();
   }

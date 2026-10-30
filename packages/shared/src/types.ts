@@ -1,6 +1,6 @@
 export type BrainrotLevel = 0 | 1 | 2 | 3;
 export type RoastIntensity = 1 | 2 | 3;
-export type PersonaId = 'gremlin' | 'sports' | 'nature' | 'reality' | 'mom' | 'boomer';
+export type PersonaId = 'gremlin' | 'sports' | 'nature' | 'reality' | 'mom' | 'boomer' | 'desi' | 'aunty';
 
 export const AVATARS = ['clover', 'flower', 'triangle', 'square', 'blob', 'ghost', 'circle', 'drop', 'star', 'droid', 'mech', 'alien', 'hexagon', 'cat', 'cloud', 'pill', 'pebble', 'puddle'] as const;
 export type AvatarType = (typeof AVATARS)[number];
@@ -10,7 +10,7 @@ export type TriggerKind =
   | 'cap'
   | 'tone_shift'
   | 'derail'
-  | 'mewing'
+  | 'crash_out'
   | 'simp_radar'
   | 'missing'
   | 'owl'
@@ -33,7 +33,7 @@ export type TriggerKind =
   | 'battle_result'
   | 'bet_result'
   | 'six_seven'
-  | 'fanum'
+  | 'unc'
   | 'reply_later'
   | 'typing_drama'
   | 'typed_deleted'
@@ -49,7 +49,7 @@ export type TriggerKind =
   | 'cooked_max'
   | 'manual';
 
-export type AuraReason = 'ohio' | 'cap' | 'claim_real' | 'hot_take' | 'fanum_tax' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
+export type AuraReason = 'ohio' | 'cap' | 'claim_real' | 'hot_take' | 'unc' | 'reply_later' | 'quick_reply' | 'typing_drama' | 'slow_reply' | 'six_seven' | 'mog' | 'big_play' | 'manual';
 
 export type FxKind = 'shake' | 'flash' | 'glitch' | 'confetti' | 'emojiRain' | 'zoom' | 'deepfry' | 'jumpscare' | 'invert' | 'spin' | 'meltdown';
 export const FX_KINDS: readonly FxKind[] = ['shake', 'flash', 'glitch', 'confetti', 'emojiRain', 'zoom', 'deepfry', 'jumpscare', 'invert', 'spin', 'meltdown'];

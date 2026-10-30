@@ -55,7 +55,7 @@ export function AuraPanel({ members, ledger, meId, onProfile }: { members: Membe
           {recent.map((e) => (
             <li key={e.id} className="rounded-xl bg-surface px-3 py-2.5 ring-1 ring-line">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-sm font-medium">{byId.get(e.memberId)?.name ?? '?'} <span className="font-normal text-faint">· {e.reason === 'manual' ? 'manual' : AURA_RULES[e.reason].label}</span></span>
+                <span className="truncate text-sm font-medium">{byId.get(e.memberId)?.name ?? '?'} <span className="font-normal text-faint">· {e.reason === 'manual' ? 'manual' : AURA_RULES[e.reason]?.label ?? e.reason}</span></span>
                 <span className={clsx('font-mono text-sm font-semibold tabular-nums', e.delta >= 0 ? 'text-good' : 'text-bad')}>{fmtAura(e.delta)}</span>
               </div>
               <div className="mt-1 truncate font-mono text-xs text-muted">“{e.receipt}”</div>

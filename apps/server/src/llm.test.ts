@@ -51,13 +51,16 @@ test('openai-compatible provider: sends bearer auth, model, reasoning_effort; pa
   assert.ok(body.max_completion_tokens >= 200);
 });
 
-test('ollama provider: native /api/chat shape, stream false', async () => {
+test('ollama provider: native /api/chat shape, stream false; think is a level on gpt-oss and off on Gemma 4', async () => {
   handlers.set('/api/chat', (_q, _b, res) => res.writeHead(200).end(JSON.stringify({ message: { role: 'assistant', content: 'from ollama' } })));
-  const r = new LlmRouter([ollamaProvider({ name: 'ollama', baseUrl: base, apiKey: 'o-key', model: 'gpt-oss:120b' })], opts);
+  const r = new LlmRouter([ollamaProvider({ name: 'ollama', baseUrl: base, apiKey: 'o-key', model: 'gemma4:31b' })], opts);
   assert.deepEqual(await r.complete(msgs), { text: 'from ollama', provider: 'ollama' });
   assert.equal(lastBody['/api/chat'].body.stream, false);
-  assert.equal(lastBody['/api/chat'].body.model, 'gpt-oss:120b');
+  assert.equal(lastBody['/api/chat'].body.model, 'gemma4:31b');
+  assert.equal(lastBody['/api/chat'].body.think, false);
   assert.equal(lastBody['/api/chat'].auth, 'Bearer o-key');
+  await new LlmRouter([ollamaProvider({ name: 'ollama', baseUrl: base, apiKey: 'o-key', model: 'gpt-oss:120b' })], opts).complete(msgs);
+  assert.equal(lastBody['/api/chat'].body.think, 'low');
 });
 
 test('429 falls through to the next provider, and Retry-After puts the first on cooldown', async () => {
@@ -143,7 +146,7 @@ test('config: .env.example placeholders count as unset, real values pass through
   const pasted = {
     ADMIN_KEY: 'REPLACE_ME_with_a_long_random_password',
     CORS_ORIGINS: 'https://your-web.onrender.com',
-    DATABASE_URL: 'postgresql://postgres.xxxxxxxxxxxxxxxxxxxx:REPLACE_ME@aws-0-region.pooler.supabase.com:5432/postgres',
+    DATABASE_URL: 'postgresql://REPLACE_ME_user:REPLACE_ME_password@your-db-host/neondb',
     GROQ_API_KEY: 'gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     OLLAMA_API_KEY: 'REPLACE_ME_ollama_cloud_key',
     GIPHY_API_KEY: 'REPLACE_ME_giphy_key',
@@ -157,4 +160,6 @@ test('config: .env.example placeholders count as unset, real values pass through
   assert.equal(filled.adminKey, 'k9#Lm2');
   assert.equal(filled.groqKey, 'gsk_4bQ7');
   assert.deepEqual(filled.corsOrigins, ['https://cookedchat-web.onrender.com']);
+  assert.equal(filled.ollamaModel, 'gemma4:31b', 'Gemma 4 by default, under its ollama.com API name');
+  assert.equal(loadConfig({ OLLAMA_MODEL: 'gpt-oss:120b' }).ollamaModel, 'gpt-oss:120b');
 });

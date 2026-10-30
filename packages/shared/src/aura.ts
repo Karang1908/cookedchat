@@ -2,7 +2,7 @@ import type { AuraReason } from './types.js';
 
 /** Aura rules from the spec, section 7. One place so server, admin UI and tests agree. */
 export const AURA_RULES: Record<Exclude<AuraReason, 'manual'>, { delta: number; label: string }> = {
-  fanum_tax: { delta: -50, label: 'Fanum tax' },
+  unc: { delta: -50, label: 'Used expired slang (unc)' },
   reply_later: { delta: -500, label: '"I\'ll reply later"' },
   quick_reply: { delta: 100, label: 'Quick reply in a live convo' },
   typing_drama: { delta: -300, label: 'Typed an essay, sent a crumb' },

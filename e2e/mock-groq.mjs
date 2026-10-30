@@ -12,7 +12,8 @@ http.createServer((req, res) => {
     if (req.url.startsWith('/api/chat')) {
       // Ollama Cloud's native API
       res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ message: { role: 'assistant', content: 'MOCK-OLLAMA: clapping back 🗿' } }));
+      // asks for a GIF like Gemma can ("[gif: ...]"): the tag must be stripped from the line and the GIF attached
+      return res.end(JSON.stringify({ message: { role: 'assistant', content: `MOCK-OLLAMA(${body.model}): clapping back 🗿 [gif: mic drop]` } }));
     }
     const user = body.messages?.find((m) => m.role === 'user')?.content ?? '';
     const fact = /What just happened: (.*)/.exec(user)?.[1] ?? '?';

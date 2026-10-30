@@ -7,7 +7,7 @@ export const COOKED_PUSH: Partial<Record<TriggerKind, number>> = {
   typed_deleted: 4,
   slow_reply: 5,
   reply_later: 6,
-  fanum: 4,
+  unc: 4,
   burst: 8,
   edited: 5,
   deleted: 5,

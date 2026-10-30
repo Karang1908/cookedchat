@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import {
   AURA_RULES, AVATARS, CLASSES, DUEL_CLOSERS, DUEL_OPENERS, DUEL_REPLIES, GIF_QUERY, PERSONAS, RIVAL_RETORTS, SIDE_LABEL, TIERS, COOKED_CAPS_BONUS, COOKED_PER_MESSAGE, COOKED_PUSH, DEAD_CHAT_PROMPTS, QUICK_REPLY_FARM_GUARD_MS, TREND_EMOJI,
-  cannedLine, capsRatio, decayCooked, findFood, fmtDuration, is67, isDry, isReplyLater, ohioScore, pushCooked, shouldMeltdown,
+  cannedLine, capsRatio, decayCooked, findUnc, fmtDuration, is67, isDry, isReplyLater, ohioScore, pushCooked, shouldMeltdown,
 } from '@cooked/shared';
 import type {
   Ack, AuraEntry, AuraReason, Card, ChatMessage, FxKind, JoinPayload, Member, PersonaId, SimulateKind, SoundName, TriggerKind, TypingPayload,
@@ -14,7 +14,7 @@ import { Memory } from './features/memory.js';
 import type { GifFinder } from './features/gif.js';
 import { tickBehavior } from './features/ticks.js';
 import type { CommentContext } from './llm/prompt.js';
-import { sanitizeLine } from './llm/prompt.js';
+import { GIF_RULE, sanitizeLine } from './llm/prompt.js';
 import { Room } from './room.js';
 import { applySettingsPatch } from './settings.js';
 import type { SettingsPatch } from './settings.js';
@@ -26,6 +26,8 @@ import type { Hit } from './tables.js';
 export interface Line {
   text: string;
   model: string;
+  /** GIPHY search the model asked for ("[gif: ...]"), already cleaned */
+  gif?: string;
 }
 
 export interface CommentWriter {
@@ -43,7 +45,9 @@ const MAX_MESSAGES_KEPT = 500;
 const SEND_LIMIT = { count: 6, windowMs: 5000 };
 const TYPING_STALE_MS = 8000;
 const USER_EMOJI = new Set<string>([...TREND_EMOJI, '😂', '🔥', '👍', '❤️']);
-const BOT_CHATTER = ['lol', 'wait what', 'k', 'pizza tonight?', 'bro', 'no way', 'ok', '67', 'i am so hungry', 'hmm', 'sure', 'i will reply later guys', 'WHAT IS HAPPENING', 'fine.'];
+const BOT_CHATTER = ['lol', 'wait what', 'k', 'pizza tonight?', 'bro', 'no way', 'ok', '67', 'i am so hungry', 'hmm', 'sure', 'i will reply later guys', 'WHAT IS HAPPENING', 'fine.', 'acha', 'baad mein reply karta hu', 'bhai scene kya hai', 'chai peeni hai'];
+/** model-picked GIFs per side: GIPHY's free key allows ~100 searches an hour */
+const MODEL_GIF_GAP_MS = 20_000;
 const BOTS: { name: string; avatar: Member['avatar'] }[] = [
   { name: 'Aman', avatar: 'cat' }, { name: 'Riya', avatar: 'ghost' }, { name: 'Dev', avatar: 'droid' },
 ];
@@ -184,8 +188,8 @@ export class Engine {
         hits.push({ kind: 'quick_reply', aura: 'quick_reply', fact: `replied in ${Math.round(gap / 1000)} seconds in a live conversation` });
       }
     }
-    const food = findFood(text);
-    if (food) hits.push({ kind: 'fanum', aura: 'fanum_tax', fact: `mentioned food (${food})` });
+    const unc = findUnc(text);
+    if (unc) hits.push({ kind: 'unc', aura: 'unc', fact: `used expired slang ("${unc}"), like an old person`, vars: { term: unc } });
     if (f.burst === t.burstCount) hits.push({ kind: 'burst', fact: `sent ${f.burst} messages in a row` });
     if (isDry(text) && !hits.some((h) => h.kind === 'typing_drama')) hits.push({ kind: 'dry_reply', fact: `sent a dry reply: "${text}"` });
     return hits;
@@ -438,7 +442,7 @@ export class Engine {
     const text = line?.text ?? cannedLine(c.kind, { name, text: c.text, ...c.vars }, () => this.rng());
 
     const posted = this.postAi(room, text, { replyTo: c.targetId, trigger: c.kind, model: line?.model ?? 'canned', side: duel ? 'groq' : undefined });
-    this.attachGif(room, posted, c.kind);
+    this.attachGif(room, posted, GIF_QUERY[c.kind], line?.gif);
     const rival = this.rivalOf(settings);
     if (rival) await this.rivalReply(room, c, name, text, INSTANT.has(c.kind), rival);
     this.quietReact(room, c);
@@ -452,10 +456,19 @@ export class Engine {
     return null;
   }
 
-  /** fire-and-forget: the roast is already on screen, the GIF is attached when (if) it arrives */
-  private attachGif(room: Room, msg: ChatMessage, kind: TriggerKind): void {
-    const q = GIF_QUERY[kind];
-    if (!q || !this.d.gifs) return;
+  /**
+   * Fire-and-forget: the line is already on screen, the GIF is attached when (if) it arrives. `table` is the trigger's
+   * fixed search (big moments); `picked` is what the model asked for, rationed per side, falling back to the table one.
+   */
+  private attachGif(room: Room, msg: ChatMessage, table?: string, picked?: string): void {
+    if (!this.d.gifs) return;
+    let q = table;
+    const side = msg.side ?? 'main';
+    if (picked && Date.now() - (room.lastGifAt.get(side) ?? 0) >= MODEL_GIF_GAP_MS) {
+      room.lastGifAt.set(side, Date.now());
+      q = picked;
+    }
+    if (!q) return;
     this.d.gifs.find(q).then((url) => {
       if (!url) return;
       msg.gif = url;
@@ -480,7 +493,8 @@ export class Engine {
       }
     }
     const pool = RIVAL_RETORTS[rival];
-    this.postAi(room, line?.text ?? pool[Math.floor(this.rng() * pool.length)]!, { replyTo: c.targetId, trigger: c.kind, persona: rival, model: line?.model ?? 'canned', side: duel ? 'ollama' : undefined });
+    const posted = this.postAi(room, line?.text ?? pool[Math.floor(this.rng() * pool.length)]!, { replyTo: c.targetId, trigger: c.kind, persona: rival, model: line?.model ?? 'canned', side: duel ? 'ollama' : undefined });
+    this.attachGif(room, posted, undefined, line?.gif);
   }
 
   /**
@@ -516,6 +530,8 @@ export class Engine {
               `You are in a roast battle with the OTHER AI in this chat: ${them.label}, running on ${SIDE_LABEL[seat.otherSide]}.`,
               'Roast the other AI (its model, its speed, its takes, its vibe), never the humans and never anyone\'s identity.',
               'Write exactly ONE line, at most 140 characters, plain text, at most 2 emoji.',
+              'If the chat is in Hinglish, roast in Hinglish (Roman script).',
+              GIF_RULE,
             ].join('\n'),
             user: i === 0 ? `The humans went quiet. Open the roast battle.${recent ? `\nRecent chat:\n${recent}` : ''}` : `The other AI just said: "${last}". ${i === 2 ? 'Finish it.' : 'Clap back.'}`,
           });
@@ -526,7 +542,8 @@ export class Engine {
       const canned = seat.pool[Math.floor(this.rng() * seat.pool.length)]!
         .replaceAll('{them}', SIDE_LABEL[seat.otherSide]).replaceAll('{me}', SIDE_LABEL[seat.side]).replaceAll('{other}', them.label);
       last = (line && sanitizeLine(line.text)) || canned;
-      this.postAi(room, last, { trigger: 'duel', persona: seat.persona, model: line?.model ?? 'canned', side: seat.side });
+      const posted = this.postAi(room, last, { trigger: 'duel', persona: seat.persona, model: line?.model ?? 'canned', side: seat.side });
+      if (line && last === line.text) this.attachGif(room, posted, undefined, line.gif);
     }
     this.playEffects(room, 'duel');
   }
@@ -742,7 +759,7 @@ export class Engine {
     return this.comment(room, {
       kind, member, text: kind === 'dry_reply' ? 'k' : lore?.text ?? '', fact: `admin forced a ${kind} moment`,
       // believable placeholder values so forced canned lines never show raw {braces}
-      vars: { other, pct: 77, ohio: 94, fast: '4s', slow: '4h', ago: '6h', time: '9:14 PM', power: '9,001', from: 'Lurker', to: 'Instigator', emoji: '🔥', prev: 'ok', text: lore?.text ?? 'cereal is soup' },
+      vars: { other, pct: 77, ohio: 94, fast: '4s', slow: '4h', ago: '6h', time: '9:14 PM', power: '9,001', from: 'Lurker', to: 'Instigator', emoji: '🔥', prev: 'ok', term: 'fanum tax', text: lore?.text ?? 'cereal is soup' },
     }, true);
   }
 

@@ -29,15 +29,17 @@ export class FakeBus implements RoomBus {
 export class FakeWriter implements CommentWriter {
   calls: CommentContext[] = [];
   reply: string | null = 'LLM LINE';
+  /** GIPHY search the fake model asks for on every line, like "[gif: ...]" */
+  gif: string | undefined;
   async write(ctx: CommentContext) {
     this.calls.push(ctx);
-    return this.reply === null ? null : { text: this.reply, model: ctx.prefer === 'ollama' ? 'ollama' : 'groq-120b' };
+    return this.reply === null ? null : { text: this.reply, model: ctx.prefer === 'ollama' ? 'ollama' : 'groq-120b', gif: this.gif };
   }
   said: { system: string; user: string; prefer?: 'groq' | 'ollama' }[] = [];
   sayReply: string | null = null;
   async say(p: { system: string; user: string; prefer?: 'groq' | 'ollama' }) {
     this.said.push(p);
-    return this.sayReply === null ? null : { text: `${this.sayReply} (${p.prefer})`, model: p.prefer === 'ollama' ? 'ollama' : 'groq-120b' };
+    return this.sayReply === null ? null : { text: `${this.sayReply} (${p.prefer})`, model: p.prefer === 'ollama' ? 'ollama' : 'groq-120b', gif: this.gif };
   }
   generated: { system: string; user: string }[] = [];
   generateReply: string | null = null;

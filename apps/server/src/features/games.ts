@@ -17,9 +17,11 @@ const BOT_RIZZ = [
   'roses are red, violets are blue, i reply in 4 seconds, and only to you',
   'is your name wifi? because i am feeling a strong connection and zero buffering',
   'i was going to leave you on read but my thumbs refused',
+  'tum Panchayat ki chai ho, simple ho par roz chahiye 🫖',
+  'mere reply time pe mat jao, tumhare liye toh main Sharma ji ka beta ban jaunga',
 ];
-const BOT_TAKES = ['pineapple belongs on pizza and that is a hill', 'sending voice notes is a form of violence', 'reading a message and replying later is fine actually'];
-const CONFESSIONS = ['i have been pretending to read this group chat for weeks', 'i typed a 500 word reply once and sent "lol"', 'i muted this chat and unmuted it just to leave someone on read'];
+const BOT_TAKES = ['pineapple belongs on pizza and that is a hill', 'sending voice notes is a form of violence', 'reading a message and replying later is fine actually', 'maggi at 2am beats any 5 star dinner', 'Hera Pheri is better than every superhero movie'];
+const CONFESSIONS = ['i have been pretending to read this group chat for weeks', 'i typed a 500 word reply once and sent "lol"', 'i muted this chat and unmuted it just to leave someone on read', 'maine "baad mein reply karta hu" bola tha. 3 hafte ho gaye'];
 
 const MIN_VOTE_GAP_MS = 60_000;
 const BET_MIN = 10;

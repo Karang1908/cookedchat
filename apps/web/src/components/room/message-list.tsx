@@ -30,9 +30,9 @@ interface Props {
 const PICKER = ['🗿', '💀', '😭', '🫡', '🔥', '😂', '🥀', '🧢'];
 
 const TRIGGER_LABEL: Record<string, string> = {
-  six_seven: '67', fanum: 'fanum tax', reply_later: 'reply later', typing_drama: 'typing spy', typed_deleted: 'typing spy', slow_reply: 'shadow realm',
+  six_seven: '67', unc: 'unc alert', reply_later: 'reply later', typing_drama: 'typing spy', typed_deleted: 'typing spy', slow_reply: 'shadow realm',
   burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am',
-  cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', mewing: 'mewing', simp_radar: 'simp radar',
+  cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', crash_out: 'crash out', simp_radar: 'simp radar',
   missing: 'missing', owl: 'the owl', betrayal: 'betrayal', class_change: 'evolution', scouter: 'scouter', mog: 'mog', lore: 'lore', chaos: 'chaos agent',
   weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', duel: 'ai vs ai', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
 };

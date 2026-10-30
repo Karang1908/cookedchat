@@ -73,8 +73,8 @@ export class Memory {
     if (this.throttled(room, memberId)) return fail('slow down, translator is tired');
 
     const system = mode === 'brainrot'
-      ? 'Rewrite the message in exaggerated current Gen Alpha brainrot slang (fanum tax, no cap, cooked, aura, rizz, ohio, sigma, skibidi). Keep the meaning. One or two short lines. Nothing about anyone\'s identity. Output only the rewrite.'
-      : 'You are a confused but kind dad translating internet slang into plain, slightly baffled English. One or two short sentences. Output only the translation.';
+      ? 'Rewrite the message in exaggerated 2026 brainrot slang (6 7, aura farming, crash out, glazing, chopped, unc, clanker, delulu, no cap, cooked, lock in). If it is in Hinglish, keep it Hinglish. Keep the meaning. One or two short lines. Nothing about anyone\'s identity. Output only the rewrite.'
+      : 'You are a confused but kind dad translating internet slang (and Hinglish) into plain, slightly baffled English. One or two short sentences. Output only the translation.';
     const gen = await this.e.d.writer.generate?.({ system, user: msg.text });
     const text = gen ? clean(gen, 280) : '';
     const result: Translation = text && !isOffLimits(text) ? { text, via: 'ai' } : { text: mode === 'brainrot' ? toBrainrot(msg.text, () => this.e.rng()) : toPlain(msg.text, () => this.e.rng()), via: 'rules' };
@@ -136,7 +136,7 @@ export class Memory {
     room.recompute();
     const count = (id: string, reason: string) => room.ledger.filter((l) => l.memberId === id && l.reason === reason).length;
     const list = computeAwards([...room.members.values()].map((m) => ({
-      id: m.id, name: m.name, aura: m.aura, stats: m.stats, typingDramas: count(m.id, 'typing_drama'), fanumTaxes: count(m.id, 'fanum_tax'),
+      id: m.id, name: m.name, aura: m.aura, stats: m.stats, typingDramas: count(m.id, 'typing_drama'), uncMoments: count(m.id, 'unc'),
       diabolical: Math.max(0, ...room.hotTakes.filter((h) => h.authorId === m.id).map((h) => h.diabolical)),
     })));
     if (!list.length) return fail('not enough activity for awards yet');

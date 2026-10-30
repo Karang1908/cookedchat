@@ -17,6 +17,8 @@ node e2e/ui-core.cjs; node e2e/ui-a.cjs; node e2e/ui-b.cjs; node e2e/ui-c.cjs; n
 PG_LOCAL=1 e2e/stack.sh down
 ```
 
+The server creates its tables on boot, so `PG_LOCAL` only starts an empty Postgres. `stack.sh` needs Linux (see the macOS note in `CLAUDE.md`).
+
 Note on the restart phase: stopping only the server keeps the data, so for phase 2 kill just the server
 (`kill $(cat /tmp/cooked-e2e/server.pid)`) and run `e2e/stack.sh up` again (it skips what is already running).
 
@@ -34,5 +36,6 @@ Gotchas that cost time (also in `CLAUDE.md`):
 - Needs `playwright` resolvable (`npm i -g playwright`); use plain headless Chromium. `--enable-unsafe-swiftshader` makes shader compilation take ~20s.
 - Locators: use `getByRole('textbox', { name: 'Message' })`, never `getByLabel('Message')` (the message toolbar buttons match it), and scope text searches to `getByRole('log')`.
 - If Playwright hangs on a click, probe `document.elementFromPoint` at the element's centre: something is covering it.
+- `ui-d`'s daily-tiers step needs the browser's local time to be afternoon (a morning start lets a missing poster take the AI's turn first): run it with e.g. `TZ=Pacific/Auckland` when needed.
 - The AI stays quiet on purpose: low-priority triggers comment ~35% of the time and there is a cooldown. Use "I'll reply later" (priority 8) or `demo speed` in the admin Timings.
 - Screenshots go to `e2e/shots/` (git-ignored).

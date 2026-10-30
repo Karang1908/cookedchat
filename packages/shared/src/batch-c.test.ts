@@ -7,12 +7,12 @@ const pub = (over: Partial<ReturnType<typeof base>> = {}) => ({ ...base(), ...ov
 function base() {
   return { messages: 5, avgReplyMs: 20_000 as number | null, rizz: 50, rizzTitle: 'Mid Rizz', ohioAvg: 5, ohioPeak: 10, mogs: 0, dry: 0, ghosts: 0, klass: 'lurker' as const, creature: 'lirili' as const, tier: 'beta' as const, power: 500 };
 }
-const mem = (id: string, name: string, aura: number, p = {}, extra: Partial<AwardInput> = {}): AwardInput => ({ id, name, aura, stats: pub(p), typingDramas: 0, fanumTaxes: 0, diabolical: 0, ...extra });
+const mem = (id: string, name: string, aura: number, p = {}, extra: Partial<AwardInput> = {}): AwardInput => ({ id, name, aura, stats: pub(p), typingDramas: 0, uncMoments: 0, diabolical: 0, ...extra });
 
 test('awards: each category goes to the right person and only when earned', () => {
   const awards = computeAwards([
     mem('a', 'Aman', 900, { rizz: 85, rizzTitle: 'Rizzler' }),
-    mem('b', 'Riya', -400, { dry: 5, ghosts: 3, avgReplyMs: 7_200_000 }, { typingDramas: 2, fanumTaxes: 3 }),
+    mem('b', 'Riya', -400, { dry: 5, ghosts: 3, avgReplyMs: 7_200_000 }, { typingDramas: 2, uncMoments: 3 }),
     mem('c', 'Dev', 50, { ohioAvg: 60, ohioPeak: 95, avgReplyMs: 2_000 }, { diabolical: 80 }),
   ]);
   const by = Object.fromEntries(awards.map((x) => [x.title, x.name]));
@@ -23,7 +23,7 @@ test('awards: each category goes to the right person and only when earned', () =
   assert.equal(by['Most Diabolical'], 'Dev');
   assert.equal(by['Typing Drama Queen'], 'Riya');
   assert.equal(by['Ohio Resident'], 'Dev');
-  assert.equal(by['Fanum Tax Collector'], 'Riya');
+  assert.equal(by['Certified Unc'], 'Riya');
   assert.equal(by['Rizzler'], 'Aman');
 });
 
@@ -31,7 +31,7 @@ test('awards: nothing to give to a quiet room, nobody wins what they did not ear
   assert.deepEqual(computeAwards([mem('a', 'Solo', 100)]), []);
   const flat = computeAwards([mem('a', 'A', 0), mem('b', 'B', 0)]);
   const titles = flat.map((x) => x.title);
-  for (const t of ['Most Diabolical', 'Typing Drama Queen', 'Ohio Resident', 'Fanum Tax Collector', 'Rizzler', 'Main Character']) assert.ok(!titles.includes(t), t);
+  for (const t of ['Most Diabolical', 'Typing Drama Queen', 'Ohio Resident', 'Certified Unc', 'Rizzler', 'Main Character']) assert.ok(!titles.includes(t), t);
 });
 
 test('wrapped: percentages always sum to 100, sorted, final form is the creature', () => {

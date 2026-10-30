@@ -114,7 +114,7 @@ test('translate: dry meanings, brainrot/plain via the LLM with rule fallbacks, c
   assert.deepEqual(t1, { ok: true, text: 'bro is NOT fanum taxing me rn 💀', via: 'ai' });
   await m.translate(s.room, b, hungry.id, 'brainrot');
   assert.equal(s.writer.generated.length, 1, 'second identical request came from the cache');
-  assert.match(s.writer.generated[0]!.system, /Gen Alpha brainrot/);
+  assert.match(s.writer.generated[0]!.system, /2026 brainrot/);
 
   s.writer.generateReply = null;
   const plain = await m.translate(s.room, b, hungry.id, 'plain');
@@ -191,14 +191,14 @@ test('awards: needs real activity; names winners with reasons; rate limited', as
   const b = s.add('b', 'Riya');
   assert.deepEqual(s.engine.memory.awards(s.room), { ok: false, error: 'not enough activity for awards yet' });
   await say(s, a, '67');
-  await say(s, b, 'pizza tonight?');
+  await say(s, b, 'yolo pizza tonight?');
   await say(s, b, "wait I'll reply later");
   assert.deepEqual(s.engine.memory.awards(s.room), { ok: true });
   const awards = (cards(s, 'awards')[0]!.card as any).awards as { title: string; name: string }[];
   const by = Object.fromEntries(awards.map((x) => [x.title, x.name]));
   assert.equal(by['Main Character'], 'Aman');
   assert.equal(by['NPC Energy'], 'Riya');
-  assert.equal(by['Fanum Tax Collector'], 'Riya');
+  assert.equal(by['Certified Unc'], 'Riya');
   assert.equal(s.engine.memory.awards(s.room).ok, false);
 });
 

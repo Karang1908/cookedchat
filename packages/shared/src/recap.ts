@@ -26,15 +26,14 @@ export interface Recap {
 }
 
 const PHRASE: Record<string, string> = {
-  slow_reply: 'Vanished for Hours', typing_drama: "Wrote a Novel and Sent 'ok'", six_seven: 'Said 67', fanum: 'Got Fanum Taxed', reply_later: 'Promised to Reply Later',
+  slow_reply: 'Vanished for Hours', typing_drama: "Wrote a Novel and Sent 'ok'", six_seven: 'Said 67', unc: 'Talked Like an Unc', reply_later: 'Promised to Reply Later',
   mog: 'Got Mogged', ohio: 'Went Full Ohio', cap: 'Lied (Allegedly)', claim_real: 'Told the Truth (Shockingly)', hot_take: 'Said the Unsayable', quick_reply: 'Replied Instantly',
   manual: 'Had a Big Play',
 };
 const REASON_LABEL: Record<string, string> = {
-  slow_reply: 'slow reply', typing_drama: 'typing drama', six_seven: '67', fanum_tax: 'fanum tax', reply_later: 'reply later', mog: 'mog', ohio: 'Ohio', cap: 'cap', claim_real: 'real claim',
+  slow_reply: 'slow reply', typing_drama: 'typing drama', six_seven: '67', unc: 'expired slang', fanum_tax: 'fanum tax', reply_later: 'reply later', mog: 'mog', ohio: 'Ohio', cap: 'cap', claim_real: 'real claim',
   hot_take: 'hot take', quick_reply: 'quick reply', manual: 'admin',
 };
-const REASON_TO_KEY: Record<string, string> = { fanum_tax: 'fanum' };
 
 const dayKey = (ms: number, tz: number) => new Date(ms + tz * 60_000).toISOString().slice(0, 10);
 
@@ -70,7 +69,7 @@ export function buildRecap(i: RecapInput): Recap {
     const roasts = c.filter((m) => m.kind === 'ai').length;
     const trig = c.filter((m) => m.trigger).reduce<Record<string, number>>((a, m) => ((a[m.trigger!] = (a[m.trigger!] ?? 0) + 1), a), {});
     const topTrig = Object.entries(trig).sort((a, b) => b[1] - a[1])[0]?.[0];
-    const phrase = swing ? (PHRASE[REASON_TO_KEY[swing.reason] ?? swing.reason] ?? 'Was Involved') : (topTrig && PHRASE[topTrig]) || 'Just Vibes';
+    const phrase = swing ? (PHRASE[swing.reason] ?? 'Was Involved') : (topTrig && PHRASE[topTrig]) || 'Just Vibes';
     const star = swing ? who(swing.memberId) : (userMsgs[0]?.authorId ? who(userMsgs[0].authorId) : 'The Group Chat');
     const lastUser = userMsgs.at(-1);
     return {

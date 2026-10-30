@@ -72,7 +72,9 @@ test('computePublicStats: final boss, creatures, tiers are relative to the room'
 });
 
 test('translators: brainrot, plain, dry meanings', () => {
-  assert.match(toBrainrot("I'm hungry"), /fanum taxing me rn/);
+  assert.match(toBrainrot("I'm hungry"), /crashing out from hunger/);
+  assert.match(toPlain('he is crashing out, unc behavior', () => 0), /losing their temper, an older gentleman behavior/);
+  assert.equal(dryMeaning('Acha.'), 'mujhe koi farak nahi padta');
   assert.match(toBrainrot('see you tomorrow', () => 0), /no cap$/);
   assert.match(toPlain('bro is cooked no cap', () => 0), /^So what you are saying is: my friend is in trouble honestly$/);
   assert.equal(dryMeaning('k'), 'I am deeply wounded');

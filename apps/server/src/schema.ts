@@ -1,13 +1,17 @@
--- Cooked Chat schema. The NestJS server connects with the project's direct/pooler connection string
--- (a privileged role), so RLS is enabled with NO policies: the public PostgREST/anon API can read nothing.
-
+/**
+ * The whole Postgres schema, applied by PgStore on boot (idempotent), so any Postgres works from just a DATABASE_URL.
+ * Also upgrades databases created by the old supabase/migrations (0001 + 0002), which used these same tables.
+ */
+export const SCHEMA = `
 create table if not exists rooms (
   code            text primary key,
   tz_offset_min   int    not null default 0,
   clock_offset_ms bigint not null default 0,
   settings        jsonb  not null default '{}'::jsonb,
+  extras          jsonb  not null default '{}'::jsonb,
   created_at      timestamptz not null default now()
 );
+alter table rooms add column if not exists extras jsonb not null default '{}'::jsonb;
 
 create table if not exists members (
   room_code  text not null references rooms(code) on delete cascade,
@@ -20,18 +24,23 @@ create table if not exists members (
 );
 
 create table if not exists messages (
-  id          uuid primary key,
-  room_code   text not null references rooms(code) on delete cascade,
-  author_id   text,
-  kind        text not null check (kind in ('user','ai','system')),
-  text        text not null,
-  at          bigint not null,
-  edited      boolean not null default false,
-  deleted     boolean not null default false,
+  id           uuid primary key,
+  room_code    text not null references rooms(code) on delete cascade,
+  author_id    text,
+  kind         text not null,
+  text         text not null,
+  at           bigint not null,
+  edited       boolean not null default false,
+  deleted      boolean not null default false,
   ai_reactions text[] not null default '{}',
-  reply_to    uuid,
-  trigger     text
+  reply_to     uuid,
+  trigger      text,
+  extra        jsonb not null default '{}'::jsonb
 );
+alter table messages add column if not exists extra jsonb not null default '{}'::jsonb;
+-- cards and confessions are authored by nobody; old databases only allowed user/ai/system
+alter table messages drop constraint if exists messages_kind_check;
+alter table messages add constraint messages_kind_check check (kind in ('user','ai','system','card'));
 create index if not exists messages_room_at on messages (room_code, at);
 
 create table if not exists message_edits (
@@ -52,9 +61,4 @@ create table if not exists aura_ledger (
   at         bigint not null
 );
 create index if not exists aura_room_at on aura_ledger (room_code, at);
-
-alter table rooms         enable row level security;
-alter table members       enable row level security;
-alter table messages      enable row level security;
-alter table message_edits enable row level security;
-alter table aura_ledger   enable row level security;
+`;

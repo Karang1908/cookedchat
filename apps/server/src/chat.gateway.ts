@@ -22,7 +22,7 @@ interface SocketData {
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
 const SIMULATE_KINDS: SimulateKind[] = ['typing_drama', 'slow_reply', 'burst', 'dead_chat', 'left_on_read', 'simp', 'argument', 'derail', 'tone', 'claim', 'hottake', 'bet', 'battle', 'confession'];
-const FORCE_KINDS: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme', 'duel'];
+const FORCE_KINDS: TriggerKind[] = ['six_seven', 'unc', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'crash_out', 'simp_radar', 'missing', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme', 'duel'];
 
 const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -46,6 +46,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   async handleDisconnect(socket: Sock) {
     const { code, memberId, isAdmin } = socket.data;
+    if (isAdmin) this.rooms.all().find((r) => r.code === code)?.adminSockets.delete(socket.id);
     if (!code || !memberId || isAdmin) return;
     const room = await this.rooms.ensure(code);
     if (room) this.engine.leave(room, memberId, socket.id);
@@ -229,7 +230,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
     const code = normalizeCode(p?.code);
     const room = code ? await this.rooms.ensure(code) : null;
     if (!room) return { ok: false, error: 'room not found' };
+    if (socket.data.isAdmin) this.rooms.all().find((r) => r.code === socket.data.code)?.adminSockets.delete(socket.id);
     socket.data = { code: room.code, memberId: undefined, isAdmin: true };
+    room.adminSockets.add(socket.id);
     await socket.join(room.code);
     return { ok: true, snapshot: room.snapshot() };
   }

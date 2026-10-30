@@ -20,7 +20,7 @@ test('Ohio: scored on every message, 85%+ costs 500 aura with an instant line', 
   s.bus.clear();
   const r = await say(s, a, 'SKIBIDI OHIO SIGMA RIZZ FANUM TAX!!!! 💀💀💀💀');
   assert.ok(s.room.messages.find((m) => m.id === r.id)!.ohio! >= 85);
-  assert.equal(s.room.members.get(a)!.aura, -500 + (s.room.members.get(a)!.aura + 500)); // -500 plus fanum tax below
+  assert.equal(s.room.members.get(a)!.aura, -500 + (s.room.members.get(a)!.aura + 500)); // -500 plus the unc tax ("skibidi", "fanum tax")
   assert.ok(s.room.ledger.some((e) => e.reason === 'ohio' && e.delta === -500));
   assert.ok(s.bus.ai().some((t) => /Ohio/.test(t)));
 });
@@ -45,13 +45,13 @@ test('tone shift: ok then ok. is noticed; same tone is not', async () => {
   assert.equal(s.writer.calls.filter((c) => c.kind === 'tone_shift').length, 0);
 });
 
-test('topic derail and mewing reminder fire from staged moments', async () => {
+test('topic derail and crash-out call fire from staged moments', async () => {
   const s = setup();
   await s.engine.simulate(s.room, 'derail');
   assert.ok(s.writer.calls.some((c) => c.kind === 'derail'));
   const s2 = setup();
   await s2.engine.simulate(s2.room, 'argument');
-  assert.ok(s2.bus.ai().some((t) => /mew/i.test(t)));
+  assert.ok(s2.bus.ai().some((t) => /crashing out|quiet on the creek/i.test(t)));
 });
 
 test('simp radar: fast to one person, slow to everyone else, once per pair', async () => {

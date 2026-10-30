@@ -9,6 +9,8 @@ export interface Config {
   groqBase: string;
   ollamaKey: string | null;
   ollamaBase: string;
+  /** model name as /api/tags on ollama.com lists it (no "-cloud" suffix over the API) */
+  ollamaModel: string;
   giphyKey: string | null;
   giphyBase: string;
   llmOrder: string[];
@@ -41,6 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     groqBase: env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
     ollamaKey: real(env.OLLAMA_API_KEY),
     ollamaBase: env.OLLAMA_BASE_URL || 'https://ollama.com',
+    ollamaModel: env.OLLAMA_MODEL || 'gemma4:31b',
     giphyKey: real(env.GIPHY_API_KEY),
     giphyBase: env.GIPHY_BASE_URL || 'https://api.giphy.com',
     llmOrder: list(env.LLM_ORDER).length ? list(env.LLM_ORDER) : ['groq-120b', 'groq-20b', 'ollama'],

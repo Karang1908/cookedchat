@@ -89,6 +89,10 @@ export class Room {
   readonly sendTimes = new Map<string, number[]>();
   readonly lastQuickReplyAt = new Map<string, number>();
   readonly lastVibeAt = new Map<string, number>();
+  /** real time of the last model-picked GIF, per side ('main' | 'groq' | 'ollama') */
+  readonly lastGifAt = new Map<string, number>();
+  /** admin panel sockets watching this room (not members): an idle room is only evicted when nobody is watching */
+  readonly adminSockets = new Set<string>();
 
   cookedSent = 0;
   lastCommentAt = 0; // real

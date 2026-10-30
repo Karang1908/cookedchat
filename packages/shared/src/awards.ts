@@ -7,7 +7,8 @@ export interface AwardInput {
   stats: PublicStats;
   /** ledger counts */
   typingDramas: number;
-  fanumTaxes: number;
+  /** times they used expired slang */
+  uncMoments: number;
   /** best diabolical score from the hot take arena, 0 if none */
   diabolical: number;
 }
@@ -50,8 +51,8 @@ export function computeAwards(members: AwardInput[]): Award[] {
   add('Typing Drama Queen', '🎭', drama, `typed an essay and sent a crumb ${drama?.typingDramas}x.`);
   const ohio = best(members, (m) => m.stats.ohioAvg, 25);
   add('Ohio Resident', '🌽', ohio, `${ohio?.stats.ohioAvg}% Ohio on average, peaking at ${ohio?.stats.ohioPeak}%.`);
-  const tax = best(members, (m) => m.fanumTaxes, 1);
-  add('Fanum Tax Collector', '🍟', tax, `mentioned food ${tax?.fanumTaxes}x and paid for it.`);
+  const unc = best(members, (m) => m.uncMoments, 1);
+  add('Certified Unc', '👴', unc, `used expired slang ${unc?.uncMoments}x. the group chat called the retirement home.`);
   const rizz = best(members, (m) => m.stats.rizz, 70);
   add('Rizzler', '😎', rizz, `${rizz?.stats.rizz} rizz (${rizz?.stats.rizzTitle}).`);
   return out;
