@@ -19,6 +19,7 @@ pnpm workspace (pnpm 10, Node >= 20.11, we run 22).
 pnpm install
 pnpm dev:server            # tsc -w + node --watch on :4000; loads apps/server/.env if present (see .env.example)
 pnpm dev:web               # next dev on :3000
+pnpm local                 # demo on the laptop: build, then next start :3000 + server :4000 (phones join over the Wi-Fi)
 pnpm build                 # shared -> server -> web
 pnpm test                  # shared + server (node:test; needs a build first, `pnpm build:shared` + server build)
 pnpm --filter @cooked/web typecheck
@@ -85,6 +86,8 @@ Clean messenger look. Tokens live in `apps/web/src/app/globals.css` (`bg / panel
 - **Memory-only rooms die on every deploy/restart**, UptimeRobot or not (Render free has no disk and may restart any time). Idle rooms nobody is connected to (members or `room.adminSockets`) are evicted by `GameLoop`: after 30 min with a database (reloaded on next join), after 72 h without one (gone).
 - **Slang refresh**: `UNC_SLANG` (expired, costs aura) and `SLANG_TERMS` (what the AI may say) must not overlap. `ohioScore` matches its vocabulary as whole words ("ate" is inside "great").
 - **E2E on macOS**: `e2e/stack.sh` assumes Linux (`setsid`, `su postgres`, `/usr/lib/postgresql`). Start the pieces by hand; Homebrew Postgres needs `-c unix_socket_directories=''` when the data dir path is long (103-byte socket limit). `ui-d`'s daily-tiers step depends on the time of day: started before ~12:00 local, a missing poster spends the AI's turn before the day rolls over and the tiers are (correctly) skipped. Run it with `TZ` set so local time is afternoon.
+
+- **Local Wi-Fi play** (`pnpm local`): a phone's "localhost" is itself. With `NEXT_PUBLIC_SERVER_URL` unset, `serverUrl()` uses the page's own host on port 4000, and `useRoomUrl` swaps a loopback origin for the laptop's Wi-Fi IP from the server's `GET /lan` (`lan.ts`), so QR codes work while the host browses `localhost`. Never put `localhost` in `apps/web/.env.local`. `next dev` blocks `/_next/*` from non-localhost origins unless they are in `allowedDevOrigins` (private ranges are listed in `next.config.ts`). The server's `start` loads `apps/server/.env`. Port 4000 is also used by other local projects on this machine (bits-idcards API): check `lsof -iTCP:4000` on EADDRINUSE.
 
 ## Conventions
 

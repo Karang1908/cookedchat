@@ -176,3 +176,18 @@ test('idle rooms nobody is connected to are evicted (sooner with a database), wa
   assert.equal(db.rooms.all().length, 0);
   assert.deepEqual(store.saved, [db.room.code], 'unsaved stats are flushed before the room leaves memory');
 });
+
+// ------------------------------------------------------------------ local network play
+
+test('lanAddresses: private IPv4 only, Wi-Fi/Ethernet before VPNs and bridges', async () => {
+  const { lanAddresses } = await import('./lan.js');
+  const ni = (address: string, family = 'IPv4', internal = false) => ({ address, family, internal, netmask: '', mac: '', cidr: null }) as any;
+  assert.deepEqual(lanAddresses({
+    lo0: [ni('127.0.0.1', 'IPv4', true)],
+    utun3: [ni('10.8.0.2')],
+    bridge100: [ni('172.20.0.1')],
+    en0: [ni('fe80::1', 'IPv6'), ni('192.168.1.23')],
+    en5: [ni('8.8.8.8')],
+  }), ['192.168.1.23', '10.8.0.2', '172.20.0.1']);
+  assert.deepEqual(lanAddresses({}), []);
+});

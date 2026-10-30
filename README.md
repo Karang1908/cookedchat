@@ -1,23 +1,44 @@
 # Cooked Chat 💀
 
-The AI that lives in your group chat. It interrupts, roasts, reacts and awards aura based on how people behave.
+**Team struct** · Karan Garg and Anushka Mohanty
 
-## Run it locally
+A group chat with an AI member that has zero chill. Built for a hackathon whose theme was *unserious and fun*.
+
+## What it does
+
+You and your friends join a room by scanning a QR code. Then you chat like normal while an AI watches *how* you text, not just what you say, and calls it out:
+
+- **Roasts on behaviour.** Typing for 30 seconds and then sending "ok", taking 3 hours to reply, saying "I'll reply later" (or "baad mein reply karta hu"), dry texts, message bursts, editing or deleting, and leaving someone on read.
+- **Aura points.** Every move earns or costs aura (+1000 for mogging someone, -500 for "I'll reply later", +67 for saying 67, -50 for using expired slang like "fanum tax"). There's a live leaderboard with receipts, daily Sigma/Beta tiers, RPG classes and a power-level scouter.
+- **The chat gets cooked.** The more chaotic the chat gets, the more the UI deep-fries itself: shake, glitch and saturation, ending in a full meltdown at 100%.
+- **Games.** "Chat, is this real?" votes, hot takes, a fake-coin prediction market, rizz battles judged by the AI, anonymous confessions, forecasts, instant replays, memes, recaps, awards and a Brainrot Wrapped.
+- **Personas.** Gen Z Gremlin, Sports Commentator, Nature Documentary, Reality TV, Passive-Aggressive Mom, Confused Boomer, and the desi pair: **Desi Bhai** and **Relative Aunty** (Hinglish).
+- **AI vs AI.** Turn on the duel and Groq argues with Gemma 4 on Ollama Cloud, and they roast each other when the humans go quiet. Both can drop reaction GIFs.
+
+The AI's words come from an LLM, but the game itself (aura, effects, sounds) is decided by rules, so it stays fair and fast. With no API keys at all it still works, using canned lines.
+
+## Run it on your laptop (everyone on the same Wi-Fi)
 
 ```bash
 pnpm install
-cp apps/server/.env.example apps/server/.env   # loaded automatically by dev:server (set ADMIN_KEY)
-cp apps/web/.env.example apps/web/.env.local
-pnpm dev:server    # :4000
-pnpm dev:web       # :3000
+cp apps/server/.env.example apps/server/.env   # set ADMIN_KEY (and GROQ_API_KEY / OLLAMA_API_KEY for real AI lines)
+pnpm local                                      # builds everything, then serves the web app on :3000 and the server on :4000
 ```
 
-Open http://localhost:3000, start a room, open the same room in a second tab/phone. The admin panel is `/admin/<ROOM CODE>`
-(key = `ADMIN_KEY`). Add the demo bots there, stage moments (typing drama, slow reply, burst, dead chat, left on read),
-warp the room clock, and edit every timing live.
+The server prints the address phones should use, e.g. `[local] phones on the same Wi-Fi: http://192.168.1.23:3000`.
 
-No API keys needed to try it: without `GROQ_API_KEY`/`OLLAMA_API_KEY` the commentator falls back to canned lines.
-Without `DATABASE_URL` rooms live in memory.
+1. On the laptop, open http://localhost:3000 and start a room.
+2. Press **QR**. Even though the laptop is on `localhost`, the QR code points to the laptop's Wi-Fi address, so phones can scan it straight away.
+3. Phones open the link, pick a name, and chat. Tap once to unlock sound (phones only allow audio after a tap).
+4. The admin panel is at `/admin/<ROOM CODE>` (password = `ADMIN_KEY`). From there you can add demo bots, stage moments (typing drama, slow reply, dead chat, arguments...), warp the clock and toggle the AI duel.
+
+If phones can't connect:
+- Everyone must be on the same Wi-Fi. Guest or campus networks that isolate devices from each other won't work; use a phone hotspot instead.
+- When macOS asks whether `node` may accept incoming connections, click **Allow**.
+- Ports 3000 and 4000 must be free.
+- Leave `NEXT_PUBLIC_SERVER_URL` unset locally. The app then finds the server on whatever address the page was opened from.
+
+For development with hot reload, use `pnpm dev:server` and `pnpm dev:web` instead. Without `DATABASE_URL`, rooms live in memory until the server stops.
 
 ## Tests
 
@@ -27,9 +48,9 @@ pnpm build && pnpm test      # unit tests: shared + server
 
 Real-client end-to-end suites live in [`e2e/`](e2e/README.md).
 
-## Deploy
+## Deploy (optional)
 
-Everything runs on **Render** (two free web services from [`render.yaml`](render.yaml)), with **UptimeRobot** keeping the server awake. Optional: any **Postgres** for rooms that survive restarts.
+For a hosted version instead of the laptop: everything runs on **Render** (two free web services from [`render.yaml`](render.yaml)), with **UptimeRobot** keeping the server awake. Optional: any **Postgres** for rooms that survive restarts.
 
 **Where data lives.** Without `DATABASE_URL`, rooms live in the server's memory. UptimeRobot stops the free instance from sleeping, which is enough for a demo, but memory is still wiped on every deploy, crash, or restart Render decides on (its docs say a free service "might restart at any time", and free services cannot have a disk). For data that survives, set `DATABASE_URL` to any Postgres. Neon's free tier does not expire; Render's free Postgres expires after 30 days. The server creates its own tables on boot, so there is no SQL to run.
 

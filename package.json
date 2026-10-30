@@ -7,6 +7,7 @@
     "dev:server": "pnpm --filter @cooked/server dev",
     "dev:web": "pnpm --filter @cooked/web dev",
     "build": "pnpm -r build",
+    "local": "pnpm build && pnpm --parallel --filter @cooked/server --filter @cooked/web start",
     "test": "pnpm -r test"
   },
   "engines": { "node": ">=20.11" }

@@ -4,11 +4,25 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Check, Copy, X } from 'lucide-react';
+import { serverUrl } from '@/lib/config';
 import { Button } from './ui';
+
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 export function useRoomUrl(code: string): string {
   const [url, setUrl] = useState('');
-  useEffect(() => setUrl(`${window.location.origin}/r/${code}`), [code]);
+  useEffect(() => {
+    const { protocol, hostname, port, origin } = window.location;
+    setUrl(`${origin}/r/${code}`);
+    if (!LOOPBACK.has(hostname)) return;
+    // "localhost" in a QR code means the phone itself: swap in this laptop's Wi-Fi address (local runs)
+    let live = true;
+    fetch(`${serverUrl()}/lan`)
+      .then((r) => r.json() as Promise<{ ips?: string[] }>)
+      .then((j) => { const ip = j.ips?.[0]; if (live && ip) setUrl(`${protocol}//${ip}${port ? `:${port}` : ''}/r/${code}`); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [code]);
   return url;
 }
 
