@@ -10,7 +10,7 @@ pnpm workspace (pnpm 10, Node >= 20.11, we run 22).
 
 - `packages/shared` — types, socket event contract, aura rules, slang/persona config, pure detectors, cooked meter, canned lines. ESM, built to `dist/` with tsc.
 - `apps/server` — NestJS 12 + Socket.IO. Deploys to Render. Game logic is in `src/engine.ts` (no Nest, no sockets: talks through `RoomBus`), so it is unit-testable.
-- `apps/web` — Next.js 16 (App Router, Turbopack) + Tailwind 4. Deploys to Vercel.
+- `apps/web` — Next.js 16 (App Router, Turbopack) + Tailwind 4. Deploys to Render (`render.yaml`: `cookedchat-web` + `cookedchat-server`).
 - `supabase/migrations` — Postgres schema. The server uses `pg` with `DATABASE_URL`, not supabase-js; RLS is on with no policies.
 
 ## Commands
@@ -39,7 +39,7 @@ Clean messenger look. Tokens live in `apps/web/src/app/globals.css` (`bg / panel
 - **Speaking budget** (`Engine.mayTakeTurn`): ordinary triggers need `settings.aiEvery` user messages since the AI's last turn (default 4), priority 8 needs half, priority 9+ needs one. `force` (system events) skips dice/cooldown but still needs one human message. Never two AI turns in a row; timers obey it too, ordered so the specific beats the generic (left on read → daily tiers → posters/owl → duel lull → dead chat). Blocked moments get a quiet emoji (`quietReact`). Staged/admin moments bypass all of it.
 - `room.humanSinceAi` resets in `postAi` and in `postCard` when the card has a trigger (AI-chosen). Player-started games don't spend the budget. A follow-up line in the same AI turn passes `sameTurn` (e.g. the instant-replay roast).
 - **Duel** (`settings.duel`, admin toggle): main persona on Groq (`prefer: 'groq'`), rival (configured, or a contrasting default) on Ollama; lines carry `model` and `side`. `duelBanter` runs once per lull (`duelLullMs`, room clock) after a human spoke. The router's `prefer` only reorders: if Ollama is down, Groq covers its line.
-- Unit tests set `aiEvery = 0` in `setup()`; the budget has its own suite (`engine-e.test.ts`). E2E flows that test a specific roast turn it off through the admin slider.
+- Unit tests set `aiEvery = 0` in `setup()`; the budget has its own suite (`engine-e.test.ts`). Test rooms run at local midday (`middayTz()` in `helpers.test-util.ts`): a UTC room run at 03:xx UTC fires the 3am Tung Tung on its first tick, which takes the AI's turn and broke 4 tests only during that hour. Build any new test `Room` with it. E2E flows that test a specific roast turn it off through the admin slider.
 
 ## Landmines (each one cost time)
 
@@ -76,7 +76,7 @@ Clean messenger look. Tokens live in `apps/web/src/app/globals.css` (`bg / panel
 - **Unlayered CSS beats Tailwind utilities regardless of specificity.** Global rules that utilities should be able to override (e.g. the `:focus-visible` ring) go in `@layer base`.
 - **Deep fry font**: Comic Neue is shipped via fontsource. Never fall back to the generic `cursive` (it is a serif on Linux/Android, which made the whole UI look broken).
 - **Cooked heat is calibrated**: 2 per message, decay 1/s, 67 +20. Ordinary chat stays under 50%, so the UI only fries under real chaos.
-- **Env files**: root `.env.example` is the Vercel paste (web only, no secrets); `apps/server/.env.example` is the Render paste.
+- **Env files**: root `.env.example` is the Render paste (block 1 = server, block 2 = web), with placeholders only, never real keys; the per-app `.env.example` files are for local dev. `loadConfig` treats placeholders (`REPLACE_ME`, `xxxxxxxx`, `your-`, `<...>`) as unset and `main.ts` logs which are left, so a half-filled paste degrades to canned lines instead of 401 storms. Two always-on free Render services exceed the ~750 free hours/month: only the server is pinged.
 - **Derived data**: `Member.stats` (class, creature, tier, rizz, power) is recomputed by `Room.recompute()` and flushed at most once per tick. Raw counters live in `Room.stats` and are persisted in `rooms.extras` (5s debounce); message extras (reactions, ohio, cards) in `messages.extra`. Migrations 0001+0002 must both be applied.
 
 ## Conventions

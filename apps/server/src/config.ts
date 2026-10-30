@@ -16,20 +16,32 @@ export interface Config {
   deadlineMs: number;
 }
 
+/** Values in .env.example that were pasted without being filled in. */
+const PLACEHOLDER = /REPLACE_ME|xxxxxxxx|your-|<.+>/i;
+
+export const isPlaceholder = (v?: string) => !!v && PLACEHOLDER.test(v);
+
+/** Keys still holding an .env.example placeholder; they are treated as unset. */
+export function placeholderKeys(env: NodeJS.ProcessEnv = process.env): string[] {
+  const keys = ['ADMIN_KEY', 'CORS_ORIGINS', 'DATABASE_URL', 'GROQ_API_KEY', 'OLLAMA_API_KEY', 'GIPHY_API_KEY'];
+  return keys.filter((k) => isPlaceholder(env[k]));
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const list = (v?: string) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
+  const real = (v?: string) => (v && !isPlaceholder(v) ? v : null);
+  const list = (v?: string) => (real(v) ? v!.split(',').map((s) => s.trim()).filter(Boolean) : []);
   const origins = list(env.CORS_ORIGINS);
   return {
     port: Number(env.PORT ?? 4000),
-    adminKey: env.ADMIN_KEY || null,
+    adminKey: real(env.ADMIN_KEY),
     corsOrigins: origins.length ? origins : true,
-    databaseUrl: env.DATABASE_URL || null,
+    databaseUrl: real(env.DATABASE_URL),
     databaseSsl: env.DATABASE_SSL !== 'false',
-    groqKey: env.GROQ_API_KEY || null,
+    groqKey: real(env.GROQ_API_KEY),
     groqBase: env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
-    ollamaKey: env.OLLAMA_API_KEY || null,
+    ollamaKey: real(env.OLLAMA_API_KEY),
     ollamaBase: env.OLLAMA_BASE_URL || 'https://ollama.com',
-    giphyKey: env.GIPHY_API_KEY || null,
+    giphyKey: real(env.GIPHY_API_KEY),
     giphyBase: env.GIPHY_BASE_URL || 'https://api.giphy.com',
     llmOrder: list(env.LLM_ORDER).length ? list(env.LLM_ORDER) : ['groq-120b', 'groq-20b', 'ollama'],
     attemptTimeoutMs: Number(env.LLM_ATTEMPT_TIMEOUT_MS ?? 2500),

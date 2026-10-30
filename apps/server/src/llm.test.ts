@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from '@cooked/shared';
 import { ollamaProvider, openAiCompatProvider } from './llm/providers.js';
 import { LlmRouter } from './llm/router.js';
 import { buildMessages, sanitizeLine } from './llm/prompt.js';
+import { loadConfig, placeholderKeys } from './config.js';
 
 type Handler = (req: http.IncomingMessage, body: any, res: http.ServerResponse) => void;
 let server: http.Server;
@@ -136,4 +137,24 @@ test('buildMessages: carries persona, level, intensity, guardrail and the facts'
   assert.match(m[0]!.content, /middle of the night/);
   assert.match(m[1]!.content, /Aman/);
   assert.match(m[1]!.content, /Riya: did you see it/);
+});
+
+test('config: .env.example placeholders count as unset, real values pass through', () => {
+  const pasted = {
+    ADMIN_KEY: 'REPLACE_ME_with_a_long_random_password',
+    CORS_ORIGINS: 'https://your-web.onrender.com',
+    DATABASE_URL: 'postgresql://postgres.xxxxxxxxxxxxxxxxxxxx:REPLACE_ME@aws-0-region.pooler.supabase.com:5432/postgres',
+    GROQ_API_KEY: 'gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    OLLAMA_API_KEY: 'REPLACE_ME_ollama_cloud_key',
+    GIPHY_API_KEY: 'REPLACE_ME_giphy_key',
+  };
+  const c = loadConfig(pasted);
+  assert.deepEqual([c.adminKey, c.databaseUrl, c.groqKey, c.ollamaKey, c.giphyKey], [null, null, null, null, null]);
+  assert.equal(c.corsOrigins, true);
+  assert.deepEqual(placeholderKeys(pasted), Object.keys(pasted));
+
+  const filled = loadConfig({ ADMIN_KEY: 'k9#Lm2', GROQ_API_KEY: 'gsk_4bQ7', CORS_ORIGINS: 'https://cookedchat-web.onrender.com' });
+  assert.equal(filled.adminKey, 'k9#Lm2');
+  assert.equal(filled.groqKey, 'gsk_4bQ7');
+  assert.deepEqual(filled.corsOrigins, ['https://cookedchat-web.onrender.com']);
 });
