@@ -33,9 +33,9 @@ export function BreakingBanner({ messages, ready }: { messages: ChatMessage[]; r
     <AnimatePresence>
       {headline && (
         <motion.div key={lastShown.current} role="status" initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -60, opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-          className="pointer-events-none fixed inset-x-0 top-0 z-[75] flex items-stretch overflow-hidden border-b-2 border-white/30 bg-gradient-to-r from-ember via-magenta to-blurple pt-[env(safe-area-inset-top)] shadow-2xl">
-          <span className="flex shrink-0 items-center gap-1.5 bg-black/35 px-3 font-display text-lg uppercase tracking-wider text-white sm:text-2xl">🚨 Breaking</span>
-          <span className="min-w-0 flex-1 truncate px-3 py-2 text-sm font-bold text-white sm:text-base">{headline}</span>
+          className="pointer-events-none fixed inset-x-0 top-0 z-[75] flex items-stretch overflow-hidden bg-bad pt-[env(safe-area-inset-top)] shadow-2xl">
+          <span className="flex shrink-0 items-center gap-1.5 bg-black px-3 font-display text-lg uppercase tracking-wider text-white sm:text-xl">🚨 Breaking</span>
+          <span className="min-w-0 flex-1 truncate px-3 py-2.5 text-sm font-bold text-white sm:text-base">{headline}</span>
         </motion.div>
       )}
     </AnimatePresence>

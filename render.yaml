@@ -17,3 +17,9 @@ services:
         sync: false
       - key: OLLAMA_API_KEY
         sync: false
+      - key: GIPHY_API_KEY
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: LLM_ORDER
+        value: groq-120b,groq-20b,ollama

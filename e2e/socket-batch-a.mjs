@@ -18,6 +18,7 @@ if (mode === 'phase1') {
   const members = []; B.on('room:members', (m) => members.push(m));
   const msgs = []; B.on('chat:message', (m) => msgs.push(m)); B.on('chat:update', (m) => msgs.push(m));
   assert.equal((await emit(ADM, 'admin:auth', { key: 'letmein', code })).ok, true);
+  ADM.emit('admin:settings', { aiEvery: 0 });
 
   const first = await emit(A, 'chat:send', { text: 'my aura is unmatched' });
   const reply = await emit(B, 'chat:send', { text: 'your aura is a rumor', replyToId: first.id });

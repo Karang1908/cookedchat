@@ -36,6 +36,7 @@ if (mode === 'phase1') {
   X.emit('admin:warp', { ms: 99999999 });
   assert.equal((await emit(ADM, 'admin:auth', { key: 'wrong', code })).error, 'wrong key');
   const adm = await emit(ADM, 'admin:auth', { key: 'letmein', code });
+  ADM.emit('admin:settings', { aiEvery: 0 }); // these checks target individual roasts
   assert.equal(adm.ok, true); assert.equal(adm.snapshot.clockOffsetMs, 0, 'non-admin warp ignored');
   const admEv = collect(ADM);
 

@@ -26,9 +26,11 @@ export class LlmRouter {
   }
 
   /** first provider to answer wins; null means "use the canned line" */
-  async complete(messages: ChatMsg[]): Promise<{ text: string; provider: string } | null> {
+  /** `prefer` moves that provider family (name prefix, e.g. 'ollama') to the front; the rest stay as fallbacks */
+  async complete(messages: ChatMsg[], prefer?: string): Promise<{ text: string; provider: string } | null> {
     const started = this.now();
-    for (const p of this.providers) {
+    const order = prefer ? [...this.providers.filter((p) => p.name.startsWith(prefer)), ...this.providers.filter((p) => !p.name.startsWith(prefer))] : this.providers;
+    for (const p of order) {
       if ((this.cooldownUntil.get(p.name) ?? 0) > this.now()) continue;
       const remaining = this.opts.deadlineMs - (this.now() - started);
       if (remaining <= 50) break;

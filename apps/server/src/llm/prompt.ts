@@ -14,6 +14,8 @@ export interface CommentContext {
   midnight: boolean;
   /** set when this line is a rival commentator answering another persona */
   rivalOf?: { label: string; line: string };
+  /** duel rooms: which provider family should write this line */
+  prefer?: 'groq' | 'ollama';
 }
 
 export const MAX_LINE = 160;

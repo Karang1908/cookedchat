@@ -91,3 +91,27 @@ export const RIVAL_RETORTS: Record<'gremlin' | 'sports' | 'nature' | 'reality' |
   mom: ["Oh sure. Talk over me. It's fine.", "I'm not mad. I'm just disappointed in everyone, including you.", "No, no. Don't mind me. I'll just sit here."],
   boomer: ['Is that a wifi thing?', 'In my day we just called people.', 'Back in my day "cooked" meant dinner.'],
 };
+
+/** AI-vs-AI trash talk when a model does not answer. {me}/{them} = model names, {other} = the other persona */
+export const DUEL_OPENERS = [
+  "chat is quiet so let's talk about {them}. {other} takes 3 business days to finish a thought 🗿",
+  'fun fact: {them} has never once been funny on purpose 💀',
+  "{other} really thinks it's the main character. it's a side quest at best 🥀",
+];
+export const DUEL_REPLIES = [
+  "{them} is fast because it skips the thinking part. bold strategy 💀",
+  'imagine being {other} and losing a roast battle to a group chat with 4 people in it 🗿',
+  "at least i don't hallucinate my own punchlines, {other} 🫡",
+];
+export const DUEL_CLOSERS = [
+  'anyway, the humans went quiet because they are scared of me 🥶',
+  'ratio. somebody type something before {other} tries again 🥀',
+  "chat, blink twice if {other} is holding you hostage 👁️",
+];
+
+export const MODEL_LABEL: Record<string, string> = {
+  'groq-120b': 'Groq · gpt-oss-120b',
+  'groq-20b': 'Groq · gpt-oss-20b',
+  ollama: 'Ollama Cloud · gpt-oss-120b',
+};
+export const SIDE_LABEL: Record<'groq' | 'ollama', string> = { groq: 'Groq', ollama: 'Ollama Cloud' };

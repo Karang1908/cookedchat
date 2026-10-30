@@ -3,29 +3,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
+import { ExternalLink } from 'lucide-react';
 import { BRAINROT, DEFAULT_TIMINGS, FX_KINDS, PERSONAS, SOUND_NAMES } from '@cooked/shared';
-import type { PersonaId, RoomTimings, SimulateKind, TriggerKind } from '@cooked/shared';
+import type { BrainrotLevel, PersonaId, RoastIntensity, RoomTimings, SimulateKind, TriggerKind } from '@cooked/shared';
 import { fmtDuration } from '@/lib/format';
 import { useLiveRoom } from '@/lib/use-live-room';
 import { AuraPanel } from '../room/aura-panel';
+import { Button, Chip, Segmented, Switch, Wordmark, fieldCls } from '../ui';
 
 const KEY = 'cooked.adminKey';
 const WARPS: [string, number][] = [['-1h', -3_600_000], ['+5m', 300_000], ['+30m', 1_800_000], ['+1h', 3_600_000], ['+4h', 14_400_000], ['+12h', 43_200_000]];
 const SIMS: [SimulateKind, string][] = [['typing_drama', '⌨️ typing drama'], ['slow_reply', '🕳️ slow reply (+3h)'], ['burst', '💬 message burst'], ['dead_chat', '🦗 dead chat'], ['left_on_read', '👁️ left on read'], ['simp', '💘 simp radar'], ['argument', '🔥 argument (mewing)'], ['derail', '🥣 topic derail'], ['tone', '🥶 tone shift (ok → ok.)'], ['claim', '🧢 big claim (is this real?)'], ['hottake', '🔥 hot take'], ['bet', '💰 prediction market'], ['battle', '⚔️ rizz battle (bots)'], ['confession', '🤫 confession']];
-const FORCES: TriggerKind[] = ['six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme'];
+const FORCES: TriggerKind[] = ['duel', 'six_seven', 'fanum', 'reply_later', 'typing_drama', 'typed_deleted', 'slow_reply', 'burst', 'dry_reply', 'edited', 'deleted', 'left_on_read', 'dead_chat', 'tung_tung', 'cooked_max', 'ohio_high', 'cap', 'tone_shift', 'derail', 'mewing', 'simp_radar', 'owl', 'betrayal', 'class_change', 'scouter', 'mog', 'lore', 'chaos', 'weather', 'replay', 'copypasta', 'recap', 'awards', 'wrapped', 'meme'];
 const BOT_LINES = ['k', '67', "wait I'll reply later", 'pizza tonight?', 'lol', 'WHAT IS HAPPENING', 'ok.', 'fine'];
 const TIMING_FIELDS: { key: keyof RoomTimings; label: string; unit: 's' | 'n' }[] = [
-  { key: 'typingDramaMs', label: 'typing drama after', unit: 's' }, { key: 'typedDeletedMs', label: 'typed-then-deleted after', unit: 's' },
-  { key: 'slowReplyMs', label: 'slow reply gap', unit: 's' }, { key: 'quickReplyMs', label: 'quick reply gap', unit: 's' },
-  { key: 'deadChatMs', label: 'dead chat after', unit: 's' }, { key: 'leftOnReadMs', label: 'left on read after', unit: 's' },
-  { key: 'burstCount', label: 'burst size (msgs)', unit: 'n' }, { key: 'burstWindowMs', label: 'burst window', unit: 's' },
-  { key: 'commentCooldownMs', label: 'AI cooldown', unit: 's' },
-  { key: 'voteWindowMs', label: 'votes & battles stay open', unit: 's' },
-  { key: 'missingMs', label: 'missing poster after', unit: 's' },
-  { key: 'owlMs', label: 'owl after (post 9pm)', unit: 's' },
-  { key: 'loreGapMs', label: 'lore callback gap', unit: 's' },
+  { key: 'typingDramaMs', label: 'Typing drama after', unit: 's' }, { key: 'typedDeletedMs', label: 'Typed-then-deleted after', unit: 's' },
+  { key: 'slowReplyMs', label: 'Slow reply gap', unit: 's' }, { key: 'quickReplyMs', label: 'Quick reply gap', unit: 's' },
+  { key: 'deadChatMs', label: 'Dead chat after', unit: 's' }, { key: 'leftOnReadMs', label: 'Left on read after', unit: 's' },
+  { key: 'burstCount', label: 'Burst size (messages)', unit: 'n' }, { key: 'burstWindowMs', label: 'Burst window', unit: 's' },
+  { key: 'commentCooldownMs', label: 'AI cooldown', unit: 's' }, { key: 'voteWindowMs', label: 'Votes & battles stay open', unit: 's' },
+  { key: 'missingMs', label: 'Missing poster after', unit: 's' }, { key: 'owlMs', label: 'Owl after (post 9pm)', unit: 's' },
+  { key: 'loreGapMs', label: 'Lore callback gap', unit: 's' }, { key: 'duelLullMs', label: 'Duel: AIs roast each other after', unit: 's' },
 ];
-const DEMO_TIMINGS: Partial<RoomTimings> = { typingDramaMs: 8000, typedDeletedMs: 4000, deadChatMs: 45_000, leftOnReadMs: 60_000, commentCooldownMs: 4000, voteWindowMs: 10_000, missingMs: 120_000, owlMs: 120_000, loreGapMs: 60_000 };
+const DEMO_TIMINGS: Partial<RoomTimings> = { typingDramaMs: 8000, typedDeletedMs: 4000, deadChatMs: 45_000, leftOnReadMs: 60_000, commentCooldownMs: 4000, voteWindowMs: 10_000, missingMs: 120_000, owlMs: 120_000, loreGapMs: 60_000, duelLullMs: 20_000 };
 
 export function AdminView({ code }: { code: string }) {
   const [key, setKey] = useState<string | null>(null);
@@ -38,9 +38,10 @@ export function AdminView({ code }: { code: string }) {
 
   if (!key) {
     return (
-      <main className="mx-auto grid min-h-dvh max-w-sm place-items-center px-5">
+      <main className="flex min-h-dvh flex-col items-center justify-center px-5">
+        <Wordmark className="mb-8" />
         <form
-          className="glass w-full rounded-2xl p-6"
+          className="w-full max-w-sm rounded-2xl border border-line bg-panel p-6"
           onSubmit={(e) => {
             e.preventDefault();
             try {
@@ -49,10 +50,11 @@ export function AdminView({ code }: { code: string }) {
             setKey(draftKey);
           }}
         >
-          <h1 className="font-display text-3xl uppercase">Admin · {code}</h1>
-          <label htmlFor="k" className="mt-4 block text-xs font-semibold uppercase tracking-widest text-mute">admin key</label>
-          <input id="k" type="password" autoFocus value={draftKey} onChange={(e) => setDraftKey(e.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none focus:border-blurple" />
-          <button disabled={!draftKey} className="mt-4 w-full rounded-xl bg-blurple py-3 font-semibold disabled:opacity-50">Unlock</button>
+          <p className="text-sm text-muted">Control room</p>
+          <h1 className="font-mono text-3xl font-bold tracking-[0.25em]">{code}</h1>
+          <label htmlFor="k" className="mt-6 block text-[13px] font-semibold text-muted">Admin key</label>
+          <input id="k" type="password" autoFocus value={draftKey} onChange={(e) => setDraftKey(e.target.value)} className={clsx(fieldCls, 'mt-1.5 h-11 w-full')} />
+          <Button variant="primary" size="lg" className="mt-5 w-full" disabled={!draftKey}>Unlock</Button>
         </form>
       </main>
     );
@@ -68,6 +70,7 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
   const [custom, setCustom] = useState('');
   const [timings, setTimings] = useState<RoomTimings>(DEFAULT_TIMINGS);
   const [cooked, setCooked] = useState(0);
+  const [aiEvery, setAiEvery] = useState(4);
   const bots = state.members.filter((m) => m.isBot);
   const emit = socket;
 
@@ -78,69 +81,76 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
   useEffect(() => { if (state.status === 'error' && state.error === 'wrong key') onBadKey(); }, [state.status, state.error, onBadKey]);
   useEffect(() => setTimings(state.settings.timings), [state.settings.timings]);
   useEffect(() => setCooked(state.cooked), [state.cooked]);
+  useEffect(() => setAiEvery(state.settings.aiEvery), [state.settings.aiEvery]);
   useEffect(() => { if (!botId && bots[0]) setBotId(bots[0].id); }, [bots, botId]);
 
   if (state.status === 'error') {
-    return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><h1 className="font-display text-4xl uppercase">{state.error}</h1><Link href="/" className="mt-4 inline-block text-blurple-soft underline">home</Link></div></main>;
+    return <main className="grid min-h-dvh place-items-center px-6 text-center"><div><h1 className="text-2xl font-bold">{state.error}</h1><Link href="/" className="mt-4 inline-block text-sm text-muted underline">home</Link></div></main>;
   }
   const roomNow = new Date(now + state.clockOffsetMs);
   const settings = state.settings;
+  const set = (p: Parameters<NonNullable<typeof emit.current>['emit']>[1] & object) => emit.current?.emit('admin:settings', p as never);
 
   return (
-    <main className="mx-auto max-w-[1400px] px-4 py-5">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl uppercase tracking-wide">Control room · <span className="text-blurple-soft">{code}</span></h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className={clsx('rounded-full px-3 py-1 font-mono text-xs', state.status === 'ready' ? 'bg-mint/15 text-mint' : 'bg-sun/15 text-sun')}>{state.status}</span>
-          <a href={`/r/${code}`} target="_blank" rel="noreferrer" className="rounded-full border border-white/15 px-3 py-1 hover:bg-white/10">open room ↗</a>
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4">
+          <Wordmark />
+          <span className="text-sm text-muted">Control room <span className="font-mono font-semibold tracking-wider text-fg">{code}</span></span>
+          <Chip tone={state.status === 'ready' ? 'good' : 'warn'}>{state.status}</Chip>
+          <a href={`/r/${code}`} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-fg">open room <ExternalLink size={14} /></a>
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <main className="mx-auto grid max-w-[1400px] gap-4 px-4 py-5 lg:grid-cols-3">
         <div className="space-y-4">
-          <Card title="Room clock">
-            <div className="font-mono text-3xl tabular-nums">{roomNow.toLocaleTimeString()}</div>
-            <div className="text-sm text-mute">{roomNow.toLocaleDateString()} · {state.clockOffsetMs === 0 ? 'real time' : `${state.clockOffsetMs > 0 ? '+' : '-'}${fmtDuration(state.clockOffsetMs)} from real`}</div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {WARPS.map(([l, ms]) => <Btn key={l} onClick={() => emit.current?.emit('admin:warp', { ms })}>{l}</Btn>)}
-              <Btn onClick={() => emit.current?.emit('admin:warp', { ms: -state.clockOffsetMs })} tone="mute">reset</Btn>
-            </div>
-            <p className="mt-2 text-xs text-mute">Timers (dead chat, left on read, 3am alarm) all run on this clock.</p>
-          </Card>
-
-          <Card title="Commentator">
-            <Field label="persona">
-              <select value={settings.persona} onChange={(e) => emit.current?.emit('admin:settings', { persona: e.target.value as PersonaId })} className="w-full rounded-lg border border-white/10 bg-ink-800 px-3 py-2">
+          <Card title="AI behaviour">
+            <Field label="Persona">
+              <select aria-label="Persona" value={settings.persona} onChange={(e) => set({ persona: e.target.value as PersonaId })} className={clsx(fieldCls, 'h-9 w-full cursor-pointer')}>
                 {Object.values(PERSONAS).map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
               </select>
             </Field>
-            <Field label={`brainrot: ${BRAINROT[settings.brainrot].name}`}>
-              <input type="range" min={0} max={3} step={1} value={settings.brainrot} onChange={(e) => emit.current?.emit('admin:settings', { brainrot: Number(e.target.value) as 0 | 1 | 2 | 3 })} className="w-full accent-blurple" />
+            <Field label={`Brainrot · ${BRAINROT[settings.brainrot].name}`}>
+              <Segmented size="sm" label="Brainrot" value={settings.brainrot} onChange={(v) => set({ brainrot: v })} options={([0, 1, 2, 3] as BrainrotLevel[]).map((v) => ({ value: v, label: v }))} />
             </Field>
-            <Field label={`roast intensity: ${['', 'mild', 'medium', 'emotional damage'][settings.intensity]}`}>
-              <input type="range" min={1} max={3} step={1} value={settings.intensity} onChange={(e) => emit.current?.emit('admin:settings', { intensity: Number(e.target.value) as 1 | 2 | 3 })} className="w-full accent-magenta" />
+            <Field label="Roast intensity">
+              <Segmented size="sm" label="Roast intensity" value={settings.intensity} onChange={(v) => set({ intensity: v })} options={[{ value: 1 as RoastIntensity, label: 'mild' }, { value: 2 as RoastIntensity, label: 'medium' }, { value: 3 as RoastIntensity, label: 'emotional damage' }]} />
             </Field>
-            <div className="mt-2 flex gap-2">
-              <Toggle on={settings.commentary} onClick={() => emit.current?.emit('admin:settings', { commentary: !settings.commentary })}>AI commentary</Toggle>
-              <Toggle on={settings.autopilotBots} onClick={() => emit.current?.emit('admin:settings', { autopilotBots: !settings.autopilotBots })}>bot autopilot</Toggle>
+            <Field label={`How often the AI speaks · ${aiEvery === 0 ? 'whenever a human spoke in between' : `about 1 in ${aiEvery + 1} messages`}`}>
+              <input type="range" min={0} max={10} step={1} value={aiEvery} onChange={(e) => setAiEvery(Number(e.target.value))} onPointerUp={() => set({ aiEvery })} onKeyUp={() => set({ aiEvery })} className="w-full accent-[#ff6a3d]" aria-label="AI speaks every N human messages" />
+              <p className="mt-1 text-xs text-faint">Ordinary moments wait for this many human messages, core jokes half, big moments (67, mogs, meltdown) one. Never two AI turns in a row. Other moments get a quiet emoji.</p>
+            </Field>
+            <div className="-mx-1 divide-y divide-line">
+              <Switch checked={settings.commentary} onChange={(v) => set({ commentary: v })} label="AI commentary" hint="off = aura and effects keep running, the AI stays silent" />
+              <Switch checked={settings.duel} onChange={(v) => set({ duel: v })} label="AI duel: Groq vs Ollama" hint="each roast gets a reply from the other model; in lulls they roast each other" />
+              <Switch checked={settings.chaos} onChange={(v) => set({ chaos: v })} label="Chaos agent" hint="random dares and plot twists" />
+              <Switch checked={settings.jumpscare} onChange={(v) => set({ jumpscare: v })} label="Jumpscares" />
+              <Switch checked={settings.autopilotBots} onChange={(v) => set({ autopilotBots: v })} label="Bot autopilot" hint="bots chat and play games on their own" />
             </div>
-            <div className="mt-2 flex gap-2">
-              <Toggle on={settings.chaos} onClick={() => emit.current?.emit('admin:settings', { chaos: !settings.chaos })}>chaos agent</Toggle>
-              <Toggle on={settings.jumpscare} onClick={() => emit.current?.emit('admin:settings', { jumpscare: !settings.jumpscare })}>jumpscares</Toggle>
-            </div>
-            <Field label="rival commentator (argues with the main one)">
-              <select value={settings.rival ?? ''} onChange={(e) => emit.current?.emit('admin:settings', { rival: (e.target.value || null) as PersonaId | null })} className="mt-1 w-full rounded-lg border border-white/10 bg-ink-800 px-3 py-2">
+            <Field label="Rival commentator (argues with the main one)">
+              <select aria-label="Rival commentator" value={settings.rival ?? ''} onChange={(e) => set({ rival: (e.target.value || null) as PersonaId | null })} className={clsx(fieldCls, 'h-9 w-full cursor-pointer')}>
                 <option value="">none</option>
                 {Object.values(PERSONAS).filter((p) => p.id !== settings.persona).map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
               </select>
+              {settings.duel && !settings.rival && <p className="mt-1 text-xs text-faint">The duel picks a contrasting rival automatically.</p>}
             </Field>
           </Card>
 
+          <Card title="Room clock">
+            <div className="font-mono text-3xl font-semibold tabular-nums">{roomNow.toLocaleTimeString()}</div>
+            <div className="text-sm text-muted">{roomNow.toLocaleDateString()} · {state.clockOffsetMs === 0 ? 'real time' : `${state.clockOffsetMs > 0 ? '+' : '-'}${fmtDuration(state.clockOffsetMs)} from real`}</div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {WARPS.map(([l, ms]) => <Button size="sm" key={l} onClick={() => emit.current?.emit('admin:warp', { ms })}>{l}</Button>)}
+              <Button size="sm" variant="ghost" onClick={() => emit.current?.emit('admin:warp', { ms: -state.clockOffsetMs })}>reset</Button>
+            </div>
+            <p className="mt-2 text-xs text-faint">Dead chat, left on read, posters, the owl, the 3am alarm and markets all run on this clock.</p>
+          </Card>
+
           <Card title={`Cooked-o-meter · ${state.cooked}%`}>
-            <input type="range" min={0} max={100} value={cooked} onChange={(e) => setCooked(Number(e.target.value))} onPointerUp={() => emit.current?.emit('admin:setCooked', { value: cooked })} onKeyUp={() => emit.current?.emit('admin:setCooked', { value: cooked })} className="w-full accent-ember" aria-label="Cooked percentage" />
-            <div className="mt-2 flex gap-1.5">
-              {[0, 40, 60, 80].map((v) => <Btn key={v} onClick={() => emit.current?.emit('admin:setCooked', { value: v })}>{v}%</Btn>)}
-              <Btn tone="hot" onClick={() => emit.current?.emit('admin:setCooked', { value: 100 })}>100 · meltdown</Btn>
+            <input type="range" min={0} max={100} value={cooked} onChange={(e) => setCooked(Number(e.target.value))} onPointerUp={() => emit.current?.emit('admin:setCooked', { value: cooked })} onKeyUp={() => emit.current?.emit('admin:setCooked', { value: cooked })} className="w-full accent-[#ff6a3d]" aria-label="Cooked percentage" />
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[0, 40, 60, 80].map((v) => <Button size="sm" key={v} onClick={() => emit.current?.emit('admin:setCooked', { value: v })}>{v}%</Button>)}
+              <Button size="sm" variant="danger" onClick={() => emit.current?.emit('admin:setCooked', { value: 100 })}>100 · meltdown</Button>
             </div>
           </Card>
         </div>
@@ -148,18 +158,16 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
         <div className="space-y-4">
           <Card title="Bots">
             {bots.length === 0 ? (
-              <Btn onClick={() => emit.current?.emit('admin:addBots')}>add Aman, Riya & Dev</Btn>
+              <Button onClick={() => emit.current?.emit('admin:addBots')}>add Aman, Riya & Dev</Button>
             ) : (
               <>
-                <div className="flex flex-wrap gap-1.5">
-                  {bots.map((b) => <Btn key={b.id} active={b.id === botId} onClick={() => setBotId(b.id)}>{b.name}</Btn>)}
-                </div>
+                <Segmented size="sm" label="Bot" value={botId} onChange={setBotId} options={bots.map((b) => ({ value: b.id, label: b.name }))} />
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {BOT_LINES.map((l) => <Btn key={l} onClick={() => emit.current?.emit('admin:botSay', { memberId: botId, text: l })}>{l}</Btn>)}
+                  {BOT_LINES.map((l) => <Button size="sm" key={l} onClick={() => emit.current?.emit('admin:botSay', { memberId: botId, text: l })}>{l}</Button>)}
                 </div>
                 <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (custom.trim()) { emit.current?.emit('admin:botSay', { memberId: botId, text: custom }); setCustom(''); } }}>
-                  <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="make the bot say…" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-ink-800 px-3 py-2 text-sm outline-none focus:border-blurple" />
-                  <Btn type="submit">say</Btn>
+                  <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="make the bot say…" className={clsx(fieldCls, 'h-9 min-w-0 flex-1')} />
+                  <Button size="sm" type="submit" className="h-9">say</Button>
                 </form>
               </>
             )}
@@ -169,104 +177,95 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
             <ul className="space-y-2">
               {state.members.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-sm">
-                  <span className="min-w-20 font-semibold">{m.name}{m.isBot && <span className="ml-1 text-[10px] text-mute">bot</span>}</span>
-                  <span className="font-mono text-xs text-mute">{m.aura} aura · {m.coins} 🪙</span>
-                  <Btn tone={m.elsewhere ? 'go' : 'mute'} onClick={() => emit.current?.emit('admin:elsewhere', { memberId: m.id, on: !m.elsewhere })}>{m.elsewhere ? 'online elsewhere' : 'offline elsewhere'}</Btn>
-                  <Btn onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 1000 })}>+1k</Btn>
-                  <Btn onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 10000 })}>+10k</Btn>
-                  <Btn tone="mute" onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: -500 })}>-500</Btn>
+                  <span className="min-w-20 font-medium">{m.name}{m.isBot && <span className="ml-1 text-xs text-faint">bot</span>}</span>
+                  <span className="font-mono text-xs text-faint">{m.aura} aura · {m.coins} 🪙</span>
+                  <span className="ml-auto flex gap-1">
+                    <Button size="sm" variant={m.elsewhere ? 'primary' : 'secondary'} onClick={() => emit.current?.emit('admin:elsewhere', { memberId: m.id, on: !m.elsewhere })}>{m.elsewhere ? 'online elsewhere' : 'offline elsewhere'}</Button>
+                    <Button size="sm" onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 1000 })}>+1k</Button>
+                    <Button size="sm" onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: 10000 })}>+10k</Button>
+                    <Button size="sm" variant="ghost" onClick={() => emit.current?.emit('admin:aura', { memberId: m.id, delta: -500 })}>-500</Button>
+                  </span>
                 </li>
               ))}
             </ul>
           </Card>
 
           <Card title="Stage a moment">
-            <p className="mb-2 text-xs text-mute">Fakes the inputs the real detectors read, so aura and roasts fire for real. Acts as the selected bot.</p>
+            <p className="mb-3 text-xs text-faint">Fakes the inputs the real detectors read, so aura and roasts fire for real. Acts as the selected bot, and always lands.</p>
             <div className="flex flex-wrap gap-1.5">
-              {SIMS.map(([k, l]) => <Btn key={k} disabled={!botId} onClick={() => emit.current?.emit('admin:simulate', { kind: k, memberId: botId })}>{l}</Btn>)}
+              {SIMS.map(([k, l]) => <Button size="sm" key={k} disabled={!botId} onClick={() => emit.current?.emit('admin:simulate', { kind: k, memberId: botId })}>{l}</Button>)}
             </div>
           </Card>
 
-          <Card title="Force a roast">
+          <Card title="Force a moment">
             <div className="flex flex-wrap gap-1.5">
-              {FORCES.map((k) => <Btn key={k} onClick={() => emit.current?.emit('admin:force', { kind: k, memberId: botId || undefined })}>{k}</Btn>)}
+              {FORCES.map((k) => <Button size="sm" key={k} variant={k === 'duel' ? 'primary' : 'secondary'} className="font-mono text-xs" onClick={() => emit.current?.emit('admin:force', { kind: k, memberId: botId || undefined })}>{k}</Button>)}
             </div>
-          </Card>
-
-          <Card title="Effects & sounds">
-            <div className="flex flex-wrap gap-1.5">{FX_KINDS.map((k) => <Btn key={k} onClick={() => emit.current?.emit('admin:fx', { kind: k })}>{k}</Btn>)}</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">{SOUND_NAMES.map((n) => <Btn key={n} tone="mute" onClick={() => emit.current?.emit('admin:sound', { name: n })}>🔊 {n}</Btn>)}</div>
-            <p className="mt-2 text-xs text-mute">These play on every player&apos;s screen, not here.</p>
           </Card>
         </div>
 
         <div className="space-y-4">
           <Card title="Timings">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {TIMING_FIELDS.map((f) => (
                 <label key={f.key} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-mute">{f.label}</span>
-                  <span className="flex items-center gap-1">
-                    <input type="number" min={f.unit === 'n' ? 2 : 0.2} step={f.unit === 'n' ? 1 : 0.5} value={f.unit === 'n' ? timings[f.key] : +(timings[f.key] / 1000).toFixed(1)} onChange={(e) => setTimings({ ...timings, [f.key]: f.unit === 'n' ? Number(e.target.value) : Number(e.target.value) * 1000 })} className="w-24 rounded-lg border border-white/10 bg-ink-800 px-2 py-1.5 text-right font-mono outline-none focus:border-blurple" />
-                    <span className="w-3 text-xs text-mute">{f.unit === 's' ? 's' : ''}</span>
+                  <span className="min-w-0 text-muted">{f.label}</span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <input type="number" min={f.unit === 'n' ? 2 : 0.2} step={f.unit === 'n' ? 1 : 0.5} value={f.unit === 'n' ? timings[f.key] : +(timings[f.key] / 1000).toFixed(1)} onChange={(e) => setTimings({ ...timings, [f.key]: f.unit === 'n' ? Number(e.target.value) : Number(e.target.value) * 1000 })} className={clsx(fieldCls, 'h-8 w-20 text-right font-mono')} />
+                    <span className="w-3 text-xs text-faint">{f.unit === 's' ? 's' : ''}</span>
                   </span>
                 </label>
               ))}
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <Btn tone="go" onClick={() => emit.current?.emit('admin:settings', { timings })}>apply</Btn>
-              <Btn onClick={() => emit.current?.emit('admin:settings', { timings: DEMO_TIMINGS })}>demo speed</Btn>
-              <Btn tone="mute" onClick={() => emit.current?.emit('admin:settings', { timings: DEFAULT_TIMINGS })}>defaults</Btn>
+              <Button size="sm" variant="primary" onClick={() => set({ timings })}>apply</Button>
+              <Button size="sm" onClick={() => set({ timings: DEMO_TIMINGS })}>demo speed</Button>
+              <Button size="sm" variant="ghost" onClick={() => set({ timings: DEFAULT_TIMINGS })}>defaults</Button>
             </div>
           </Card>
 
+          <Card title="Effects & sounds">
+            <div className="flex flex-wrap gap-1.5">{FX_KINDS.map((k) => <Button size="sm" key={k} onClick={() => emit.current?.emit('admin:fx', { kind: k })}>{k}</Button>)}</div>
+            <div className="mt-2 flex flex-wrap gap-1.5">{SOUND_NAMES.map((n) => <Button size="sm" variant="ghost" key={n} onClick={() => emit.current?.emit('admin:sound', { name: n })}>🔊 {n}</Button>)}</div>
+            <p className="mt-2 text-xs text-faint">These play on every player&apos;s screen, not here.</p>
+          </Card>
+
           <Card title={`Live feed · ${state.messages.length}`}>
-            <ul className="scroll-thin max-h-56 space-y-1 overflow-y-auto text-sm">
-              {state.messages.slice(-25).reverse().map((m) => (
-                <li key={m.id} className={clsx('rounded-lg px-2 py-1', m.kind === 'ai' ? 'bg-magenta/10 text-magenta' : 'bg-ink-800/70')}>
-                  <b>{m.kind === 'ai' ? 'AI' : state.members.find((x) => x.id === m.authorId)?.name ?? '?'}:</b> {m.deleted ? <i>deleted</i> : m.text}
+            <ul className="scroll-thin max-h-60 space-y-1 overflow-y-auto text-sm">
+              {state.messages.slice(-30).reverse().map((m) => (
+                <li key={m.id} className={clsx('rounded-lg px-2 py-1', m.kind === 'ai' ? 'bg-accent/[0.07] text-fg' : 'text-muted')}>
+                  <b className={m.kind === 'ai' ? (m.side === 'ollama' ? 'text-ollama' : 'text-accent') : 'text-fg'}>{m.kind === 'ai' ? (m.side ? `AI · ${m.side}` : 'AI') : m.kind === 'card' ? 'card' : state.members.find((x) => x.id === m.authorId)?.name ?? '?'}:</b> {m.deleted ? <i>deleted</i> : m.text}
                 </li>
               ))}
             </ul>
           </Card>
 
           <Card title="Aura">
-            <div className="max-h-80 overflow-y-auto scroll-thin">
+            <div className="scroll-thin max-h-80 overflow-y-auto">
               <AuraPanel members={state.members} ledger={state.ledger} />
             </div>
           </Card>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="glass rounded-2xl p-4">
-      <h2 className="mb-3 font-display text-xl uppercase tracking-wide text-mute">{title}</h2>
+    <section className="rounded-2xl border border-line bg-panel p-4">
+      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
       {children}
     </section>
   );
 }
 
+/** a labelled group, not a <label>: clicking a label's text would press the first button inside it */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-mute">
-      <span className="mb-1 block">{label}</span>
+    <div className="mb-3.5" role="group" aria-label={label}>
+      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
-    </label>
+    </div>
   );
-}
-
-function Btn({ children, onClick, tone, active, disabled, type = 'button' }: { children: React.ReactNode; onClick?: () => void; tone?: 'mute' | 'hot' | 'go'; active?: boolean; disabled?: boolean; type?: 'button' | 'submit' }) {
-  return (
-    <button type={type} disabled={disabled} onClick={onClick} className={clsx('rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition active:scale-95 disabled:opacity-40', active ? 'border-blurple bg-blurple/30' : tone === 'hot' ? 'border-ember/60 bg-ember/20 text-ember' : tone === 'go' ? 'border-mint/50 bg-mint/15 text-mint' : tone === 'mute' ? 'border-white/10 bg-ink-800 text-mute hover:text-white' : 'border-white/10 bg-ink-700 hover:border-blurple/60')}>
-      {children}
-    </button>
-  );
-}
-
-function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} aria-pressed={on} className={clsx('flex-1 rounded-lg border px-2 py-2 text-xs font-semibold', on ? 'border-mint/50 bg-mint/15 text-mint' : 'border-white/10 bg-ink-800 text-mute')}>{children}: {on ? 'on' : 'off'}</button>;
 }

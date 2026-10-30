@@ -26,13 +26,27 @@ const join = async (browser, code, name, opts = {}) => {
   const admin = await actx.newPage(); await admin.goto(`${WEB}/admin/${code}`);
 
   assert.equal(await riya.getByText('Breaking').count(), 0, 'no banner before anything happens');
+
+  // ---- the AI's speaking budget (default): plenty of dry texts, few AI lines, never two AI turns in a row
+  for (const [i, t] of ['k', 'ok', 'fine', 'sure', 'hmm', 'k', 'ok', 'fine'].entries()) {
+    if (i % 2) { await box(riya).fill(t); await riya.getByRole('button', { name: 'Send' }).click(); } else { await box(aman).fill(t); await box(aman).press('Enter'); }
+    await sleep(450);
+  }
+  await sleep(1500);
+  const seq = await aman.getByRole('log').evaluate((log) => [...log.children].map((c) => (c.matches('[data-ai-line]') ? 'A' : c.matches('.group') ? 'H' : 'x')).join(''));
+  const aiCount = (seq.match(/A/g) ?? []).length;
+  const quiet = await aman.getByRole('log').locator('[title="the AI reacted"]').count();
+  console.log(`budget: 8 dry texts -> ${aiCount} AI lines (${seq}), ${quiet} quiet emoji reactions`);
+  assert.ok(aiCount >= 1 && aiCount <= 3, seq);
+  assert.ok(!seq.includes('AA'), 'never two AI turns in a row');
+  assert.ok(quiet >= 4, 'the rest got a quiet emoji');
   await box(aman).fill('67'); await box(aman).press('Enter');
 
   // ---- breaking news + sticker + gif, live on the other client
   await riya.getByRole('status').filter({ hasText: /Breaking/ }).waitFor({ timeout: 6000 });
   console.log('BREAKING banner on a live 67:', (await riya.getByRole('status').filter({ hasText: /Breaking/ }).innerText()).replace(/\n/g, ' '));
   await riya.screenshot({ path: `${SHOTS}/d1-mobile-breaking.png` });
-  await aman.locator('span.text-5xl', { hasText: '🗿' }).first().waitFor({ timeout: 4000 });
+  await aman.locator('[data-ai-line] span.text-3xl', { hasText: '🗿' }).first().waitFor({ timeout: 4000 });
   console.log('sticker tile shown on the 67 moment');
   const gif = aman.locator('img[alt="reaction gif"]').first();
   await gif.waitFor({ state: 'attached', timeout: 6000 });
@@ -57,6 +71,23 @@ const join = async (browser, code, name, opts = {}) => {
   await aman.getByRole('log').getByText(/daily tiers/i).first().waitFor();
   await aman.screenshot({ path: `${SHOTS}/d2-desktop.png` });
 
+  // ---- Groq vs Ollama duel (admin toggle)
+  await admin.getByRole('switch', { name: /AI duel: Groq vs Ollama/ }).click();
+  await admin.getByLabel('AI speaks every N human messages').focus(); await admin.keyboard.press('Home');
+  await sleep(500);
+  await box(aman).fill("wait I'll reply later"); await box(aman).press('Enter');
+  await aman.getByRole('log').getByText(/MOCK-OLLAMA/).first().waitFor({ timeout: 8000 });
+  const sides = await aman.getByRole('log').locator('[data-ai-label]').evaluateAll((els) => els.slice(-2).map((e) => e.textContent));
+  console.log('duel turn:', sides.map((t) => t.replace(/\s+/g, ' ').trim()).join(' | '));
+  assert.ok(/Groq/.test(sides[0]) && /Ollama Cloud/.test(sides[1]), 'Groq speaks, Ollama answers');
+  // a lull follows people talking: banter never starts right after an AI turn (that would be two in a row)
+  await box(riya).fill('see you all at eight'); await riya.getByRole('button', { name: 'Send' }).click(); await sleep(600);
+  await admin.getByRole('button', { name: '+5m' }).click();
+  await aman.getByRole('log').locator('[data-ai-label]', { hasText: /ai vs ai/ }).nth(2).waitFor({ timeout: 10000 });
+  const banter = await aman.getByRole('log').locator('[data-ai-label]', { hasText: /ai vs ai/ }).allInnerTexts();
+  console.log('lull banter:', banter.map((t) => t.replace(/\s+/g, ' ').trim()).join(' | '));
+  assert.equal(banter.length, 3);
+  await aman.screenshot({ path: `${SHOTS}/d3-duel.png` });
   console.log('mobile overflow px:', await riya.evaluate(() => document.documentElement.scrollWidth - innerWidth));
   console.log('console/page errors:', errors.length ? '\n' + errors.join('\n') : 'none');
   await browser.close();

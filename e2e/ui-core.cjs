@@ -46,6 +46,8 @@ const watch = (page, name) => {
   await actx.addInitScript(() => sessionStorage.setItem('cooked.adminKey', 'letmein'));
   const admin = await actx.newPage(); watch(admin, 'admin');
   await admin.goto(`${WEB}/admin/${code}`);
+  // these flows test individual roasts, so switch the AI's speaking budget off (what you would do on stage)
+  await admin.getByLabel('AI speaks every N human messages').focus(); await admin.keyboard.press('Home'); await sleep(250);
   await admin.getByRole('button', { name: /add Aman, Riya/i }).click();
   await sleep(400);
 
@@ -101,13 +103,13 @@ const watch = (page, name) => {
   await riya.getByRole('button', { name: 'Aura' }).click();
   await sleep(500);
   await riya.screenshot({ path: `${SHOTS}/11-mobile-aura.png` });
-  await riya.getByRole('button', { name: 'Chaos' }).click();
+  await riya.getByRole('button', { name: 'Games', exact: true }).click();
   await sleep(500);
   await riya.screenshot({ path: `${SHOTS}/12-mobile-chaos.png` });
   await riya.getByRole('button', { name: 'Room' }).click();
   await sleep(500);
   await riya.screenshot({ path: `${SHOTS}/13-mobile-room.png` });
-  await riya.getByRole('button', { name: 'Chat' }).click();
+  await riya.getByRole('button', { name: 'Chat', exact: true }).click();
 
   // ---- horizontal overflow on phone?
   const overflow = await riya.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

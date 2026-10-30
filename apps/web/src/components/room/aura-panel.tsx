@@ -7,13 +7,7 @@ import { AURA_RULES, CREATURES, TIERS } from '@cooked/shared';
 import type { AuraEntry, Member } from '@cooked/shared';
 import { fmtAura } from '@/lib/format';
 import { Avatar } from '../avatar';
-
-function title(rank: number, total: number, aura: number): string | null {
-  if (total < 2) return null;
-  if (rank === 0 && aura > 0) return '👑 main character';
-  if (rank === total - 1 && aura < 0) return '🥀 npc energy';
-  return null;
-}
+import { Chip, Section, Segmented } from '../ui';
 
 export function AuraPanel({ members, ledger, meId, onProfile }: { members: Member[]; ledger: AuraEntry[]; meId?: string; onProfile?: (id: string) => void }) {
   const [board, setBoard] = useState<'aura' | 'rizz'>('aura');
@@ -21,63 +15,54 @@ export function AuraPanel({ members, ledger, meId, onProfile }: { members: Membe
   const byId = new Map(members.map((m) => [m.id, m]));
   const recent = [...ledger].reverse().slice(0, 40);
   return (
-    <div className="flex flex-col gap-4">
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="font-display text-lg uppercase tracking-wide text-mute">{board === 'aura' ? 'Aura board' : 'Rizz meter'}</h3>
-          <div className="flex rounded-full border border-white/10 p-0.5 text-[11px] font-semibold" role="tablist" aria-label="Leaderboard">
-            {(['aura', 'rizz'] as const).map((b) => (
-              <button key={b} role="tab" aria-selected={board === b} onClick={() => setBoard(b)} className={clsx('rounded-full px-3 py-1 transition', board === b ? 'bg-blurple text-white' : 'text-mute hover:text-white')}>{b}</button>
-            ))}
-          </div>
-        </div>
+    <div className="space-y-6">
+      <Section title={board === 'aura' ? 'Aura board' : 'Rizz meter'} action={<div className="w-32"><Segmented size="sm" label="Leaderboard" value={board} onChange={setBoard} options={[{ value: 'aura', label: 'Aura' }, { value: 'rizz', label: 'Rizz' }]} /></div>}>
         <LayoutGroup>
-          <ul className="space-y-1.5">
+          <ol className="-mx-1.5 space-y-0.5">
             {ranked.map((m, i) => (
-              <motion.li layout key={m.id} className={clsx('rounded-xl border', m.id === meId ? 'border-blurple/60 bg-blurple/10' : 'border-white/5 bg-ink-800/70')}>
-                <button onClick={() => onProfile?.(m.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left" aria-label={`${m.name} profile`}>
-                  <span className="w-4 text-center font-mono text-xs text-mute">{i + 1}</span>
-                  <Avatar type={m.avatar} size={32} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 truncate text-sm font-semibold">
+              <motion.li layout key={m.id}>
+                <button onClick={() => onProfile?.(m.id)} className={clsx('flex w-full items-center gap-3 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface', m.id === meId && 'bg-accent/[0.06]')} aria-label={`${m.name} profile`}>
+                  <span className="w-4 text-center font-mono text-xs text-faint">{i + 1}</span>
+                  <Avatar type={m.avatar} size={30} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 truncate text-sm font-medium">
                       {m.name}
-                      {m.id === meId && <span className="text-mute">(you)</span>}
-                      {m.isBot && <span className="rounded bg-ink-600 px-1 py-px font-mono text-[9px] uppercase text-mute">bot</span>}
-                    </div>
-                    <div className="truncate text-[11px] text-mute">
-                      {board === 'aura' ? (title(i, ranked.length, m.aura) ?? `${CREATURES[m.stats.creature].emoji} ${CREATURES[m.stats.creature].name}`) : `${m.stats.rizzTitle} · ${TIERS[m.stats.tier].emoji} ${TIERS[m.stats.tier].name}`}
-                    </div>
-                  </div>
+                      {m.id === meId && <span className="text-faint">(you)</span>}
+                      {m.isBot && <Chip>bot</Chip>}
+                      {i === 0 && board === 'aura' && m.aura > 0 && ranked.length > 1 && <span title="main character">👑</span>}
+                    </span>
+                    <span className="block truncate text-xs text-faint">
+                      {board === 'aura' ? `${CREATURES[m.stats.creature].emoji} ${CREATURES[m.stats.creature].name}` : `${m.stats.rizzTitle} · ${TIERS[m.stats.tier].name}`}
+                    </span>
+                  </span>
                   {board === 'aura' ? (
-                    <motion.span key={m.aura} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className={clsx('font-mono text-sm font-bold tabular-nums', m.aura > 0 ? 'text-mint' : m.aura < 0 ? 'text-ember' : 'text-mute')}>{fmtAura(m.aura)}</motion.span>
+                    <motion.span key={m.aura} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className={clsx('font-mono text-sm font-semibold tabular-nums', m.aura > 0 ? 'text-good' : m.aura < 0 ? 'text-bad' : 'text-faint')}>{fmtAura(m.aura)}</motion.span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-ink-600"><span className="block h-full rounded-full bg-gradient-to-r from-magenta to-mint" style={{ width: `${m.stats.rizz}%` }} /></span>
-                      <span className="w-7 text-right font-mono text-sm font-bold tabular-nums">{m.stats.rizz}</span>
+                      <span className="h-1 w-12 overflow-hidden rounded-full bg-surface"><span className="block h-full rounded-full bg-accent" style={{ width: `${m.stats.rizz}%` }} /></span>
+                      <span className="w-6 text-right font-mono text-sm font-semibold tabular-nums">{m.stats.rizz}</span>
                     </span>
                   )}
                 </button>
               </motion.li>
             ))}
-          </ul>
+          </ol>
         </LayoutGroup>
-      </section>
-      <section>
-        <h3 className="mb-2 font-display text-lg uppercase tracking-wide text-mute">Receipts</h3>
-        <ul className="scroll-thin max-h-[min(50vh,380px)] space-y-1.5 overflow-y-auto pr-1">
-          {recent.length === 0 && <li className="text-sm text-mute">No aura moves yet. Everyone is at zero. Suspicious.</li>}
+      </Section>
+      <Section title="Receipts">
+        <ul className="space-y-2">
+          {recent.length === 0 && <li className="text-sm text-faint">No aura has moved yet. Everyone is at zero. Suspicious.</li>}
           {recent.map((e) => (
-            <li key={e.id} className="pop-in rounded-xl border border-white/5 bg-ink-800/70 px-3 py-2">
+            <li key={e.id} className="rounded-xl bg-surface px-3 py-2.5 ring-1 ring-line">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-sm font-semibold">{byId.get(e.memberId)?.name ?? '?'}</span>
-                <span className={clsx('font-mono text-sm font-bold tabular-nums', e.delta >= 0 ? 'text-mint' : 'text-ember')}>{fmtAura(e.delta)}</span>
+                <span className="truncate text-sm font-medium">{byId.get(e.memberId)?.name ?? '?'} <span className="font-normal text-faint">· {e.reason === 'manual' ? 'manual' : AURA_RULES[e.reason].label}</span></span>
+                <span className={clsx('font-mono text-sm font-semibold tabular-nums', e.delta >= 0 ? 'text-good' : 'text-bad')}>{fmtAura(e.delta)}</span>
               </div>
-              <div className="text-[11px] text-mute">{e.reason === 'manual' ? 'manual' : AURA_RULES[e.reason].label}</div>
-              <div className="mt-1 truncate rounded bg-ink-950/60 px-2 py-1 font-mono text-[11px] text-blurple-soft">&ldquo;{e.receipt}&rdquo;</div>
+              <div className="mt-1 truncate font-mono text-xs text-muted">“{e.receipt}”</div>
             </li>
           ))}
         </ul>
-      </section>
+      </Section>
     </div>
   );
 }

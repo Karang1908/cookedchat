@@ -1,11 +1,12 @@
 'use client';
 
 import clsx from 'clsx';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, QrCode, Volume2, VolumeX } from 'lucide-react';
 import { BRAINROT, CREATURES, PERSONAS } from '@cooked/shared';
 import type { BrainrotLevel, Member, PersonaId, RoastIntensity, RoomSettings } from '@cooked/shared';
 import { Avatar } from '../avatar';
-import { QrCard } from '../qr-dialog';
+import { CopyLink, useRoomUrl } from '../qr-dialog';
+import { Button, Chip, Section, Segmented, fieldCls } from '../ui';
 
 interface Props {
   code: string;
@@ -18,84 +19,76 @@ interface Props {
   onToggleVoice: () => void;
   onVibe: (p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => void;
   onProfile: (id: string) => void;
+  onInvite: () => void;
 }
 
-export function RoomPanel({ code, members, meId, settings, muted, voice, onToggleMute, onToggleVoice, onVibe, onProfile }: Props) {
-  const persona = PERSONAS[settings.persona];
+/** Room info, the vibe controls and who is here. The desktop left sidebar, and the "Room" tab on phones. */
+export function RoomPanel({ code, members, meId, settings, muted, voice, onToggleMute, onToggleVoice, onVibe, onProfile, onInvite }: Props) {
+  const url = useRoomUrl(code);
+  const online = members.filter((m) => m.online).length;
+  const sorted = [...members].sort((a, b) => Number(b.online) - Number(a.online) || Number(a.isBot) - Number(b.isBot));
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto scroll-thin">
-      <section className="flex flex-col items-center gap-3">
-        <h3 className="self-start font-display text-lg uppercase tracking-wide text-mute">Invite</h3>
-        <QrCard code={code} />
-      </section>
+    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 scroll-thin">
+      <Section title="Room">
+        <div className="rounded-xl bg-surface p-3 ring-1 ring-line">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xl font-bold tracking-[0.2em]">{code}</span>
+            <Button size="sm" variant="ghost" onClick={onInvite} aria-label="Show invite QR code"><QrCode size={15} /> QR</Button>
+          </div>
+          <div className="mt-3"><CopyLink url={url} /></div>
+        </div>
+      </Section>
 
-      <section>
-        <h3 className="mb-2 font-display text-lg uppercase tracking-wide text-mute">Vibe</h3>
-        <label className="block text-[11px] font-semibold uppercase tracking-widest text-mute">
-          commentator
-          <select value={settings.persona} onChange={(e) => onVibe({ persona: e.target.value as PersonaId })} className="mt-1 w-full rounded-lg border border-white/10 bg-ink-800 px-3 py-2 text-sm normal-case tracking-normal text-text">
-            {Object.values(PERSONAS).map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
-          </select>
-        </label>
-        <div className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-mute">brainrot: <span className="text-text">{BRAINROT[settings.brainrot].name}</span></div>
-        <div className="mt-1 grid grid-cols-4 gap-1" role="group" aria-label="Brainrot level">
-          {([0, 1, 2, 3] as BrainrotLevel[]).map((l) => (
-            <button key={l} onClick={() => onVibe({ brainrot: l })} aria-pressed={settings.brainrot === l} className={clsx('rounded-lg border py-1.5 text-xs font-bold transition', settings.brainrot === l ? 'border-blurple bg-blurple/30' : 'border-white/10 bg-ink-800 text-mute hover:text-white')}>{l}</button>
-          ))}
+      <Section title="Vibe">
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs text-faint">Commentator</span>
+            <select value={settings.persona} onChange={(e) => onVibe({ persona: e.target.value as PersonaId })} className={clsx(fieldCls, 'h-9 w-full cursor-pointer')}>
+              {Object.values(PERSONAS).map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
+            </select>
+          </label>
+          <div>
+            <span className="mb-1 block text-xs text-faint">Brainrot · {BRAINROT[settings.brainrot].name}</span>
+            <Segmented size="sm" label="Brainrot level" value={settings.brainrot} onChange={(v) => onVibe({ brainrot: v })} options={([0, 1, 2, 3] as BrainrotLevel[]).map((v) => ({ value: v, label: v }))} />
+          </div>
+          <div>
+            <span className="mb-1 block text-xs text-faint">Roast intensity</span>
+            <Segmented size="sm" label="Roast intensity" value={settings.intensity} onChange={(v) => onVibe({ intensity: v })} options={[{ value: 1 as RoastIntensity, label: 'mild' }, { value: 2 as RoastIntensity, label: 'medium' }, { value: 3 as RoastIntensity, label: 'damage' }]} />
+          </div>
+          {(settings.duel || settings.rival) && (
+            <p className="text-xs text-muted">
+              {settings.duel ? <><Chip tone="groq">Groq</Chip> vs <Chip tone="ollama">Ollama</Chip> duel is on</> : <>Rival: {PERSONAS[settings.rival!].emoji} {PERSONAS[settings.rival!].label} argues back</>}
+            </p>
+          )}
+          {!settings.commentary && <p className="text-xs text-warn">The admin has muted the AI.</p>}
         </div>
-        <div className="mt-3 text-[11px] font-semibold uppercase tracking-widest text-mute">roast: <span className="text-text">{['', 'mild', 'medium', 'emotional damage'][settings.intensity]}</span></div>
-        <div className="mt-1 grid grid-cols-3 gap-1" role="group" aria-label="Roast intensity">
-          {([1, 2, 3] as RoastIntensity[]).map((l) => (
-            <button key={l} onClick={() => onVibe({ intensity: l })} aria-pressed={settings.intensity === l} className={clsx('rounded-lg border py-1.5 text-xs font-bold transition', settings.intensity === l ? 'border-magenta bg-magenta/25' : 'border-white/10 bg-ink-800 text-mute hover:text-white')}>{l}</button>
-          ))}
-        </div>
-        {settings.rival && <p className="mt-2 text-xs text-mute">rival: {PERSONAS[settings.rival].emoji} {PERSONAS[settings.rival].label} argues back</p>}
-        <p className="mt-2 text-xs text-mute">commentary: {settings.commentary ? 'on' : 'muted by admin'}</p>
-        <div className="mt-3 flex gap-2">
-          <Toggle on={!muted} onClick={onToggleMute} label={muted ? 'sound off' : 'sound on'} icon={muted ? <VolumeX size={16} /> : <Volume2 size={16} />} />
-          <Toggle on={voice} onClick={onToggleVoice} label="robot voice" icon={voice ? <Mic size={16} /> : <MicOff size={16} />} />
-        </div>
-      </section>
+      </Section>
 
-      <section>
-        <h3 className="mb-2 font-display text-lg uppercase tracking-wide text-mute">In the chat · {members.filter((m) => m.online).length}</h3>
-        <ul className="space-y-1.5">
-          {members.map((m) => (
+      <Section title={`People · ${online} online`}>
+        <ul className="-mx-1.5 space-y-0.5">
+          {sorted.map((m) => (
             <li key={m.id}>
-              <button onClick={() => onProfile(m.id)} className="flex w-full items-center gap-3 rounded-xl bg-ink-800/60 px-3 py-2 text-left transition hover:bg-ink-700" aria-label={`${m.name} profile`}>
-              <span className="relative">
-                <Avatar type={m.avatar} size={30} paused={!m.online} state={m.online ? 'default' : 'sleeping'} />
-                <span className={clsx('absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-ink-900', m.online ? 'bg-mint' : 'bg-mute/50')} />
-              </span>
-              <span className="truncate text-sm font-medium">{m.name}{m.id === meId && <span className="text-mute"> (you)</span>}</span>
-              <span className="ml-auto flex items-center gap-1.5 text-xs">
-                {m.elsewhere && <span className="rounded bg-sun/15 px-1 py-px font-mono text-[9px] uppercase text-sun" title="online elsewhere">elsewhere</span>}
-                {m.isBot && <span className="rounded bg-ink-600 px-1 py-px font-mono text-[9px] uppercase text-mute">bot</span>}
-                <span title={CREATURES[m.stats.creature].name}>{CREATURES[m.stats.creature].emoji}</span>
-              </span>
+              <button onClick={() => onProfile(m.id)} className="flex w-full items-center gap-3 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface" aria-label={`${m.name} profile`}>
+                <span className="relative">
+                  <Avatar type={m.avatar} size={30} paused={!m.online} state={m.online ? 'default' : 'sleeping'} />
+                  <span className={clsx('absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-panel', m.online ? 'bg-good' : 'bg-faint')} />
+                </span>
+                <span className={clsx('min-w-0 flex-1 truncate text-sm', m.online ? 'text-fg' : 'text-faint')}>
+                  {m.name}{m.id === meId && <span className="text-faint"> (you)</span>}
+                </span>
+                {m.elsewhere && <Chip tone="warn">elsewhere</Chip>}
+                {m.isBot && <Chip>bot</Chip>}
+                <span className="text-sm" title={CREATURES[m.stats.creature].name} aria-hidden>{CREATURES[m.stats.creature].emoji}</span>
               </button>
             </li>
           ))}
         </ul>
-      </section>
-    </div>
-  );
-}
+      </Section>
 
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-mute">{k}</dt>
-      <dd className="text-right font-medium">{v}</dd>
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <Button size="sm" onClick={onToggleMute} aria-pressed={!muted}>{muted ? <VolumeX size={15} /> : <Volume2 size={15} />} {muted ? 'Sound off' : 'Sound on'}</Button>
+        <Button size="sm" onClick={onToggleVoice} aria-pressed={voice} title="Read the AI's lines aloud">{voice ? <Mic size={15} /> : <MicOff size={15} />} Voice</Button>
+      </div>
     </div>
-  );
-}
-
-function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
-  return (
-    <button onClick={onClick} aria-pressed={on} className={clsx('flex flex-1 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-semibold transition', on ? 'border-blurple/60 bg-blurple/15 text-white' : 'border-white/10 bg-ink-800 text-mute')}>
-      {icon}
-      {label}
-    </button>
   );
 }

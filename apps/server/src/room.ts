@@ -61,6 +61,10 @@ export class Room {
   lastAwardsAt = 0;
   readonly lastConfessAt = new Map<string, number>();
   membersDirty = false;
+  /** user messages since the AI last took a turn: the AI's speaking budget. Starts open so a new room can react. */
+  humanSinceAi = 99;
+  /** duel rooms: the two AIs already roasted each other during this lull (a human message re-arms it) */
+  duelLullFired = false;
   extrasDirty = false;
   lastExtrasSaveAt = 0;
   lastDerailAt = 0;
