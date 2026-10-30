@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { Gamepad2, MessageCircle, Moon, QrCode, Sparkles, Users, Volume2, VolumeX } from 'lucide-react';
-import { fryStage } from '@cooked/shared';
+import { Gamepad2, MessageCircle, Moon, QrCode, Sparkles, Swords, Users, Volume2, VolumeX } from 'lucide-react';
+import { PERSONAS, fryStage } from '@cooked/shared';
 import type { BrainrotLevel, ChatMessage, PersonaId, RoastIntensity, SoundName } from '@cooked/shared';
 import { loadIdentity, saveIdentity } from '@/lib/identity';
 import type { Identity } from '@/lib/identity';
@@ -91,7 +91,24 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   const onSeen = useCallback((id: string) => socket.current?.emit('chat:seen', { id }), [socket]);
   const onSound = useCallback((name: SoundName) => socket.current?.emit('sound:play', { name }), [socket]);
   const onReact = useCallback((id: string, emoji: string) => socket.current?.emit('chat:react', { id, emoji }), [socket]);
-  const onVibe = useCallback((p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => socket.current?.emit('room:vibe', p), [socket]);
+  const onVibe = useCallback((p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity; duel?: boolean }) => socket.current?.emit('room:vibe', p), [socket]);
+  const [toast, setToast] = useState<string | null>(null);
+  const startDuel = useCallback(() => {
+    unlockAudio();
+    socket.current?.emit('duel:start', (a) => {
+      if (a.ok) return;
+      setToast(a.error);
+      setTimeout(() => setToast(null), 2500);
+    });
+  }, [socket]);
+  const roastMe = useCallback(() => {
+    unlockAudio();
+    void actions.roastMe().then((err) => {
+      if (!err) return;
+      setToast(err);
+      setTimeout(() => setToast(null), 2500);
+    });
+  }, [actions]);
   const toggleMute = () => { unlockAudio(); setMutedState((m) => !m); };
 
   if (state.status === 'error') {
@@ -107,8 +124,8 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
     );
   }
 
-  const panel = (
-    <RoomPanel code={code} members={state.members} meId={state.meId} settings={state.settings} muted={muted} voice={voice} onToggleMute={toggleMute} onToggleVoice={() => setVoice((v) => !v)} onVibe={onVibe} onProfile={setProfileId} onInvite={() => setQrOpen(true)} />
+  const panel = (gameplay = false) => (
+    <RoomPanel gameplay={gameplay} code={code} members={state.members} meId={state.meId} settings={state.settings} muted={muted} voice={voice} onToggleMute={toggleMute} onToggleVoice={() => setVoice((v) => !v)} onVibe={onVibe} onProfile={setProfileId} onInvite={() => setQrOpen(true)} />
   );
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'chat', label: 'Chat', icon: <MessageCircle size={20} /> },
@@ -120,51 +137,53 @@ function LiveRoom({ code, identity }: { code: string; identity: Identity }) {
   return (
     <RoomActionsProvider value={actions}>
       <div id="stage" data-fry={Math.min(3, stage)} className="flex h-dvh flex-col bg-bg lg:flex-row">
-        <aside className="hidden w-[272px] shrink-0 flex-col border-r border-line bg-panel lg:flex">
-          <div className="flex h-14 shrink-0 items-center border-b border-line px-4"><Link href="/" aria-label="Home"><Wordmark /></Link></div>
-          {panel}
+        <aside className="hidden w-[280px] shrink-0 flex-col border-r-[2.5px] border-line bg-panel lg:flex">
+          <div className="flex h-16 shrink-0 items-center border-b-[2.5px] border-line px-4"><Link href="/" aria-label="Home"><Wordmark /></Link></div>
+          {panel(true)}
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 pt-[env(safe-area-inset-top)]">
+          <header className="flex h-16 shrink-0 items-center gap-3 border-b-[2.5px] border-line bg-panel px-4 pt-[env(safe-area-inset-top)]">
             <Link href="/" aria-label="Home" className="lg:hidden"><Wordmark /></Link>
             <div className="hidden min-w-0 lg:block">
-              <div className="text-sm font-semibold">Room <span className="font-mono tracking-wider">{code}</span></div>
-              <div className="text-xs text-faint">{online} online</div>
+              <div className="font-display text-xl uppercase leading-none tracking-wide">Room {code}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-muted"><span className="size-2 rounded-full border border-line bg-good" />{online} online</div>
             </div>
             {midnight && <Chip tone="ollama" className="hidden sm:inline-flex"><Moon size={11} /> midnight mode</Chip>}
             <div className="ml-auto flex items-center gap-2">
               <CookedMeter value={state.cooked} compact />
+              <Button size="sm" variant="primary" onClick={startDuel} disabled={!live} aria-label="Make the two AIs roast each other" title="Groq vs Gemma: make them roast each other"><Swords size={15} /><span className="hidden sm:inline">Duel</span></Button>
               <Button size="sm" variant="ghost" onClick={() => setQrOpen(true)} aria-label="Show invite QR code"><QrCode size={16} /><span className="font-mono text-xs lg:hidden">{code}</span></Button>
               <Button size="sm" variant="ghost" className="hidden lg:inline-flex" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</Button>
             </div>
           </header>
-          {!live && <div className="border-b border-warn/20 bg-warn/10 px-4 py-1.5 text-center text-xs text-warn" role="status">connecting… (the free server can take ~30s to wake up)</div>}
+          {toast && <div className="border-b-2 border-line bg-lemon px-4 py-1.5 text-center text-xs font-bold" role="status">{toast}</div>}
+          {!live && <div className="border-b-2 border-line bg-lemon px-4 py-1.5 text-center text-xs font-bold" role="status">connecting… (the free server can take ~30s to wake up)</div>}
 
           <main className={clsx('min-h-0 flex-1 flex-col', tab === 'chat' ? 'flex' : 'hidden lg:flex')}>
             <MessageList messages={state.messages} members={state.members} meId={state.meId} settings={state.settings} typingIds={state.typingIds} thinking={state.thinking} onEdit={onEdit} onDelete={onDelete} onSeen={onSeen} onReact={onReact} onReply={setReplyTo} onProfile={setProfileId} />
-            <Composer disabled={!live} replyTo={replyTo ? { name: state.members.find((m) => m.id === replyTo.authorId)?.name ?? '?', text: replyTo.text } : null} onCancelReply={() => setReplyTo(null)} onSend={send} onTyping={onTyping} />
+            <Composer disabled={!live} replyTo={replyTo ? { name: replyTo.kind === 'ai' ? `the AI (${PERSONAS[replyTo.persona ?? state.settings.persona].label})` : state.members.find((m) => m.id === replyTo.authorId)?.name ?? '?', text: replyTo.text } : null} onCancelReply={() => setReplyTo(null)} onSend={send} onTyping={onTyping} onRoastMe={roastMe} />
           </main>
 
           {tab !== 'chat' && (
             <section className="min-h-0 flex-1 overflow-y-auto p-4 scroll-thin lg:hidden">
               {tab === 'aura' && <AuraPanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} />}
               {tab === 'fun' && <div className="space-y-8"><GamesPanel /><Soundboard onPlay={onSound} /><Gameplay /></div>}
-              {tab === 'room' && <div className="-m-4 flex min-h-full flex-col">{panel}</div>}
+              {tab === 'room' && <div className="-m-4 flex min-h-full flex-col">{panel()}</div>}
             </section>
           )}
 
-          <nav className="safe-b grid shrink-0 grid-cols-4 border-t border-line bg-panel lg:hidden" aria-label="Sections">
+          <nav className="safe-b grid shrink-0 grid-cols-4 border-t-[2.5px] border-line bg-panel lg:hidden" aria-label="Sections">
             {tabs.map((t) => (
-              <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id} className={clsx('flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors', tab === t.id ? 'text-fg' : 'text-faint')}>
-                <span className={clsx('rounded-full px-4 py-1 transition-colors', tab === t.id && 'bg-surface text-accent')}>{t.icon}</span>
+              <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id} className={clsx('flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold transition-colors', tab === t.id ? 'text-fg' : 'text-muted')}>
+                <span className={clsx('rounded-full border-2 px-4 py-0.5 transition-colors', tab === t.id ? 'border-line bg-acid shadow-[2px_2px_0_var(--color-line)]' : 'border-transparent')}>{t.icon}</span>
                 {t.label}
               </button>
             ))}
           </nav>
         </div>
 
-        <aside className="hidden w-[340px] shrink-0 flex-col border-l border-line bg-panel lg:flex">
+        <aside className="hidden w-[340px] shrink-0 flex-col border-l-[2.5px] border-line bg-panel lg:flex">
           <SidePanel members={state.members} ledger={state.ledger} meId={state.meId} onProfile={setProfileId} onSound={onSound} />
         </aside>
       </div>

@@ -36,7 +36,18 @@ export interface ClientToServerEvents {
   'awards:get': (ack?: (a: Ack) => void) => void;
   'wrapped:get': (p: { memberId?: string }, ack?: (a: Ack) => void) => void;
   'replay:request': (ack?: (a: Ack) => void) => void;
-  'room:vibe': (p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) => void;
+  'room:vibe': (p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity; duel?: boolean }) => void;
+  /** anyone can make the two AIs (Groq vs Ollama) roast each other right now; turns the duel on */
+  'duel:start': (ack?: (a: Ack) => void) => void;
+  /** "🔥 Roast me": a personal roast built from your own messages and stats */
+  'roast:me': (ack?: (a: Ack) => void) => void;
+  /** "🎤 Roast everyone": a comedy-roast round, one line per person */
+  'roast:room': (ack?: (a: Ack) => void) => void;
+  /** read-only spectator (the stage screen on a projector): events and a snapshot, no member, cannot act */
+  'room:watch': (p: { code: string }, ack: (a: Ack<{ snapshot: RoomSnapshot }>) => void) => void;
+  /** one click: a scripted 60-90s escalation with the bots, for demos */
+  'admin:showtime': () => void;
+  'admin:roastRoom': () => void;
   'chat:edit': (p: { id: string; text: string }) => void;
   'chat:delete': (p: { id: string }) => void;
   'chat:seen': (p: { id: string }) => void;

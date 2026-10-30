@@ -13,9 +13,19 @@ You and your friends join a room by scanning a QR code. Then you chat like norma
 - **The chat gets cooked.** The more chaotic the chat gets, the more the UI deep-fries itself: shake, glitch and saturation, ending in a full meltdown at 100%.
 - **Games.** "Chat, is this real?" votes, hot takes, a fake-coin prediction market, rizz battles judged by the AI, anonymous confessions, forecasts, instant replays, memes, recaps, awards and a Brainrot Wrapped.
 - **Personas.** Gen Z Gremlin, Sports Commentator, Nature Documentary, Reality TV, Passive-Aggressive Mom, Confused Boomer, and the desi pair: **Desi Bhai** and **Relative Aunty** (Hinglish).
-- **AI vs AI.** Turn on the duel and Groq argues with Gemma 4 on Ollama Cloud, and they roast each other when the humans go quiet. Both can drop reaction GIFs.
+- **Talk to it like a person.** Just say its name ("gremlin", "boomer", "aunty", "ai", "clanker") anywhere in a message, or hit reply on its line. It answers like a friend with no chill and swears (the admin panel has a **Swearing** switch for when judges walk up). It never goes after race, religion, caste, gender, sexuality, disability, health, weight or family.
+- **AI vs AI.** Hit **⚔️ Duel** in the room header and Groq and Gemma 4 (Ollama Cloud) roast each other on the spot. With the duel on (switch in Vibe), every roast gets a second AI arguing back, and they go at it again whenever the humans go quiet. Both can drop reaction GIFs.
+- **A real participant.** It doesn't only react to behaviour: every few messages it joins the conversation like a friend would (takes sides, answers the question in the air, teases you about what you said).
 
 The AI's words come from an LLM, but the game itself (aura, effects, sounds) is decided by rules, so it stays fair and fast. With no API keys at all it still works, using canned lines.
+
+## The demo (for judges)
+
+1. Put the **Stage screen** on the projector (room sidebar → *Stage screen ↗*, or `/stage/<CODE>`) and click once to turn the sound on. It shows a huge QR: *scan to get roasted*.
+2. Judges scan in. Each one gets a **welcome roast** the moment they join.
+3. Let them chat. Anyone can hit **🔥** (next to the chat box) to get roasted from their own messages, or **⚔️ Duel** to make Groq and Gemma fight.
+4. From the admin panel: **🎤 Roast everyone** (one savage line per person) and **🎬 Showtime**, a 90-second scripted escalation with the bots (typing drama, 67, an argument, a "chat, is this real?" vote, the AI duel, a roast session) that ends in a full meltdown.
+5. Turn **Swearing** off in the admin panel if the room needs it clean.
 
 ## Run it on your laptop (everyone on the same Wi-Fi)
 
@@ -30,7 +40,7 @@ The server prints the address phones should use, e.g. `[local] phones on the sam
 1. On the laptop, open http://localhost:3000 and start a room.
 2. Press **QR**. Even though the laptop is on `localhost`, the QR code points to the laptop's Wi-Fi address, so phones can scan it straight away.
 3. Phones open the link, pick a name, and chat. Tap once to unlock sound (phones only allow audio after a tap).
-4. The admin panel is at `/admin/<ROOM CODE>` (password = `ADMIN_KEY`). From there you can add demo bots, stage moments (typing drama, slow reply, dead chat, arguments...), warp the clock and toggle the AI duel.
+4. The admin panel (the **Admin panel ↗** link in the room's sidebar, or `/admin/<ROOM CODE>`) (password = `ADMIN_KEY`). From there you can add demo bots, stage moments (typing drama, slow reply, dead chat, arguments...), warp the clock and toggle the AI duel.
 
 If phones can't connect:
 - Everyone must be on the same Wi-Fi. Guest or campus networks that isolate devices from each other won't work; use a phone hotspot instead.

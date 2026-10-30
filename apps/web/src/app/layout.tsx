@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import '@fontsource/anton/400.css';
 import '@fontsource/comic-neue/400.css';
 import '@fontsource/comic-neue/700.css';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/bricolage-grotesque';
 import '@fontsource-variable/jetbrains-mono';
 import './globals.css';
 
@@ -15,7 +15,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#07071a',
+  themeColor: '#fff1d0',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

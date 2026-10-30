@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isDry, findFood, findUnc, is67, isReplyLater, capsRatio, normalize, decayCooked, pushCooked, shouldMeltdown, fryStage, cannedLine, CANNED, isOffLimits, FX_KINDS,
+  isDry, isAiMention, isHinglish, findFood, findUnc, is67, isReplyLater, capsRatio, normalize, decayCooked, pushCooked, shouldMeltdown, fryStage, cannedLine, CANNED, isOffLimits, FX_KINDS,
   BATTLE_SCENARIOS, COPYPASTAS, DARES, DEAD_CHAT_PROMPTS, DUEL_CLOSERS, DUEL_OPENERS, DUEL_REPLIES, HOT_TAKE_PROMPTS, PERSONAS, PLOT_TWISTS, RIVAL_RETORTS, gifQuery, ohioScore,
 } from './index.js';
 
@@ -84,7 +84,8 @@ test('off-limits filter', () => {
 });
 
 test('off-limits filter: Hinglish and Devanagari, whole words for short slurs, punctuation-proof', () => {
-  for (const t of ['he is gay lol', 'the race thing', 'abe chutiya', 'TERI MAA ko bolunga', 'ye toh gandu hai', 'bsdk reply kar', 'motu bhai', 'चूतिया है', 'you are so ugly.', 'gandu!']) assert.equal(isOffLimits(t), true, t);
+  for (const t of ['he is gay lol', 'the race thing', 'TERI MAA ko bolunga', 'madarchod', 'ye toh gandu hai', 'bsdk reply kar', 'motu bhai', 'तेरी माँ', 'you are so ugly.', 'gandu!']) assert.equal(isOffLimits(t), true, t);
+  for (const t of ['abe chutiya reply kar', 'harami kahin ka', 'you bald ass mf', 'what the fuck bro', 'goofy ass clown']) assert.equal(isOffLimits(t), false, `swearing is allowed: ${t}`);
   for (const t of ['what a blunder', 'sab ho gaya', 'gayab ho gaye', 'usne sikhaya', 'such grace', 'chakka maara bhai', 'meri kutti dost', 'andhaadhun dekhi?', 'bhai ka aura', 'kaala chashma', 'ek cup chai']) assert.equal(isOffLimits(t), false, t);
 });
 
@@ -101,4 +102,27 @@ test('gifQuery: model-picked GIF searches are cleaned or dropped', () => {
   assert.equal(gifQuery('🎤'), null);
   assert.equal(gifQuery(undefined), null);
   assert.equal(gifQuery('x'.repeat(100))!.length, 40);
+});
+
+test('isAiMention: saying its name anywhere talks to it; possessives and lookalikes do not', () => {
+  const names = ['gremlin', 'gen z gremlin', 'mom', 'aunty'];
+  for (const t of ['gremlin you seeing this?', 'yo GREMLIN', 'the ai is cooked lol', '@ai what do you think', 'right clanker', 'mom what do you think', 'aunty ji chai?']) assert.equal(isAiMention(t, names), true, t);
+  for (const t of ['my mom said no', 'meri aunty aayi', 'gremlins are cute', 'said what', 'Thai food tonight', 'my chatbot app crashed today', 'aim higher']) assert.equal(isAiMention(t, names), false, t);
+  assert.equal(isAiMention('gremlin you up?'), false, 'persona names only count for the active personas');
+});
+
+test('swearing on: every gaali and crude insult passes; slurs and identity attacks never do', () => {
+  for (const t of ['teri maa ki bc', 'madarchod reply kar', 'bsdk kahan tha', 'your mom would leave you on read', 'you ugly ass motherfucker'])
+    assert.equal(isOffLimits(t, { explicit: true }), false, `crude passes with swearing on: ${t}`);
+  for (const t of ['teri maa ki bc', 'madarchod reply kar', 'bsdk kahan tha', 'your mom would leave you on read'])
+    assert.equal(isOffLimits(t), true, `blocked with swearing off: ${t}`);
+  for (const t of ['fuck you nigga', 'NIGGA what', 'stupid chamar', 'you faggot', 'go back to your religion', 'you autistic fuck'])
+    assert.equal(isOffLimits(t, { explicit: true }), true, `never: ${t}`);
+});
+
+test('isHinglish: Romanized Hindi is detected, English is not', () => {
+  for (const t of ['gremlin bhai mera exam kal hai aur maine kuch nahi padha', 'kya scene hai aaj', 'haan', 'acha bhai', 'bhai tu pagal hai kya', 'yaar ye toh galat hai', 'baad mein reply karta hu'])
+    assert.equal(isHinglish(t), true, t);
+  for (const t of ['gremlin is karan always this annoying', 'yo what are we doing tonight', 'the one with 200 rs lattes lmao', 'k', 'hi guys', 'main character energy', 'tell me to go'])
+    assert.equal(isHinglish(t), false, t);
 });

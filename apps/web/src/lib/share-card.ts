@@ -6,11 +6,11 @@ type Awards = Extract<Card, { type: 'awards' }>;
 type Meme = Extract<Card, { type: 'meme' }>;
 
 const DISPLAY = 'Anton, Impact, sans-serif';
-const BODY = '"Inter Variable", system-ui, sans-serif';
+const BODY = '"Bricolage Grotesque Variable", system-ui, sans-serif';
 
 async function ensureFonts(): Promise<void> {
   try {
-    await Promise.all([document.fonts.load('80px Anton'), document.fonts.load('600 40px "Inter Variable"'), document.fonts.load('700 40px "Inter Variable"')]);
+    await Promise.all([document.fonts.load('80px Anton'), document.fonts.load('600 40px "Bricolage Grotesque Variable"'), document.fonts.load('700 40px "Bricolage Grotesque Variable"')]);
   } catch {
     /* the fallback fonts still draw */
   }

@@ -10,9 +10,11 @@ interface Props {
   onCancelReply?: () => void;
   onSend: (text: string) => Promise<string | null>;
   onTyping: (state: 'start' | 'tick' | 'stop', len: number, cleared?: boolean) => void;
+  /** the 🔥 next to the box: get personally roasted */
+  onRoastMe?: () => void;
 }
 
-export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping }: Props) {
+export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping, onRoastMe }: Props) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
@@ -64,22 +66,26 @@ export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping }:
   };
 
   return (
-    <div className="safe-b relative px-3 pb-3 pt-2 sm:px-6">
-      {error && <div className="pop-in absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-bad px-3 py-1 text-xs font-semibold text-white">{error}</div>}
+    <div className="relative px-3 pb-3 pt-2 sm:px-6">
+      {error && <div className="brut-sm pop-in absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-bad px-3 py-1 text-xs font-bold text-white">{error}</div>}
       {replyTo && (
-        <div className="pop-in mb-2 flex items-center gap-2 border-l-2 border-accent pl-2.5 text-xs text-muted">
-          <span className="min-w-0 flex-1 truncate">Replying to <b className="font-semibold text-fg">{replyTo.name}</b>: {replyTo.text}</span>
-          <button onClick={onCancelReply} aria-label="Cancel reply" className="rounded p-0.5 text-faint hover:text-fg"><X size={14} /></button>
+        <div className="brut-sm pop-in mb-2.5 flex items-center gap-2 rounded-lg bg-lemon px-2.5 py-1.5 text-xs font-medium">
+          <span className="min-w-0 flex-1 truncate">Replying to <b className="font-extrabold">{replyTo.name}</b>: {replyTo.text}</span>
+          <button onClick={onCancelReply} aria-label="Cancel reply" className="rounded p-0.5 hover:bg-surface"><X size={14} /></button>
         </div>
       )}
-      <div className={`flex items-end gap-2 rounded-2xl border bg-surface p-1.5 pl-4 transition-colors ${focused ? 'border-line-strong' : 'border-line'}`}>
+      {/* one row, one height: the roast button and send button live inside the box so they always line up with it */}
+      <div className={`flex items-end gap-1.5 rounded-2xl border-[2.5px] border-line bg-surface p-1.5 transition-shadow ${focused ? 'shadow-[5px_5px_0_var(--color-line)]' : 'shadow-[3px_3px_0_var(--color-line)]'}`}>
+        {onRoastMe && (
+          <button type="button" onClick={onRoastMe} disabled={disabled} aria-label="Roast me" title="Roast me" className="press grid size-10 shrink-0 place-items-center rounded-xl border-2 border-line bg-bad text-lg disabled:opacity-40">🔥</button>
+        )}
         <textarea
           ref={ta}
           value={value}
           rows={1}
           maxLength={500}
           disabled={disabled}
-          placeholder={disabled ? 'reconnecting…' : 'say something (the AI is watching)'}
+          placeholder={disabled ? 'reconnecting…' : 'say something…'}
           aria-label="Message"
           onChange={(e) => change(e.target.value)}
           onFocus={() => setFocused(true)}
@@ -91,9 +97,9 @@ export function Composer({ disabled, replyTo, onCancelReply, onSend, onTyping }:
               void submit();
             }
           }}
-          className="max-h-36 min-h-[28px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-snug text-fg placeholder:text-faint focus:outline-none focus-visible:outline-none"
+          className="max-h-36 min-h-[28px] min-w-0 flex-1 resize-none bg-transparent px-1.5 py-2 text-[15px] font-medium leading-snug text-fg placeholder:text-faint focus:outline-none focus-visible:outline-none"
         />
-        <button onClick={() => void submit()} disabled={disabled || !value.trim()} aria-label="Send" className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-ink transition-colors enabled:hover:bg-accent-hover enabled:active:scale-95 disabled:bg-raised disabled:text-faint">
+        <button onClick={() => void submit()} disabled={disabled || !value.trim()} aria-label="Send" className="press grid size-10 shrink-0 place-items-center rounded-xl border-2 border-line bg-accent text-accent-ink enabled:hover:bg-accent-hover disabled:bg-raised disabled:text-faint">
           <ArrowUp size={18} strokeWidth={2.5} />
         </button>
       </div>

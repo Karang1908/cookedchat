@@ -24,7 +24,7 @@ test('67: +67 aura, shake + emoji rain + vine boom, instant canned line (LLM not
   assert.equal(s.room.ledger[0]!.receipt, '67');
 });
 
-test('expired slang: -50 unc, canned line, no LLM call; plain food talk is free now', async () => {
+test('expired slang: -50 unc, the model roasts it (canned when the model is down); plain food talk is free now', async () => {
   const s = setup();
   const a = s.add('a', 'Riya');
   await say(s, a, 'lets get pizza tonight');
@@ -33,9 +33,11 @@ test('expired slang: -50 unc, canned line, no LLM call; plain food talk is free 
   await say(s, a, 'bro just got fanum taxed');
   assert.equal(s.room.members.get(a)!.aura, -50);
   assert.equal(s.room.ledger.at(-1)!.reason, 'unc');
-  assert.equal(s.writer.calls.length, 0);
-  assert.equal(s.bus.ai().length, 1);
-  assert.match(s.bus.ai()[0]!, /fanum taxed.*unc/);
+  assert.equal(s.writer.calls.at(-1)?.kind, 'unc');
+  assert.match(s.writer.calls.at(-1)!.fact, /fanum taxed/);
+  s.writer.reply = null;
+  await say(s, a, 'skibidi');
+  assert.match(s.bus.ai().at(-1)!, /skibidi.*unc|unc/);
 });
 
 test('dry reply: LLM line posted, no aura change', async () => {

@@ -49,6 +49,47 @@ export function isReplyLater(text: string): boolean {
   );
 }
 
+/** what anyone calls the AI, whatever its persona */
+export const AI_NAMES = ['ai', 'a.i', 'clanker', 'chatbot'];
+/** "my mom", "meri aunty": talking about someone else, not to the AI */
+const POSSESSIVE = String.raw`(my|your|ur|his|her|their|our|meri|mera|mere|teri|tera|tere|uski|uska|unki)\s+`;
+
+/**
+ * Saying its name anywhere is talking to it: "gremlin you seeing this", "the ai is cooked lol", "@narrator".
+ * `names` are the active personas' names (PERSONAS[...].names). Whole words, and not after a possessive.
+ */
+export function mentionedName(text: string, names: readonly string[]): string | null {
+  for (const n of [...names, ...AI_NAMES].sort((a, b) => b.length - a.length)) {
+    const re = new RegExp(String.raw`(?<![\p{L}\p{N}])(?<!${POSSESSIVE})@?${escape(n)}(?![\p{L}\p{N}])`, 'iu');
+    if (re.test(text)) return n;
+  }
+  return null;
+}
+
+export function isAiMention(text: string, names: readonly string[] = []): boolean {
+  return mentionedName(text, names) !== null;
+}
+
+/**
+ * Romanized Hindi function words and chat staples. Only words that are not also English words ("main", "the", "to", "me", "hi"
+ * are left out), so an English sentence scores zero.
+ */
+const HINDI = new Set([
+  'hai', 'hain', 'ho', 'tha', 'thi', 'nahi', 'nhi', 'nahin', 'kya', 'kyu', 'kyun', 'kaise', 'kaisa', 'kaun', 'kab', 'kahan', 'kidhar',
+  'mera', 'meri', 'mere', 'maine', 'mujhe', 'tera', 'teri', 'tere', 'tujhe', 'tu', 'tum', 'aap', 'apna', 'apni', 'hum', 'humko', 'yeh', 'ye', 'woh', 'wo',
+  'yaar', 'bhai', 'abe', 'arre', 'arey', 'acha', 'accha', 'achha', 'theek', 'thik', 'haan', 'kal', 'aaj', 'abhi', 'kuch', 'sab', 'bahut', 'bohot',
+  'bhi', 'mein', 'se', 'ko', 'ka', 'ki', 'ke', 'gaya', 'gayi', 'raha', 'rahi', 'rahe', 'karna', 'karo', 'kar', 'karke', 'kiya', 'chal', 'chalo',
+  'matlab', 'pata', 'bata', 'bol', 'dekh', 'sun', 'suno', 'bas', 'sahi', 'jaldi', 'khana', 'paisa', 'ghar', 'padha', 'padhai', 'aaja', 'jaa', 'chahiye',
+  'baad', 'karta', 'karti', 'karte', 'hu', 'hoon', 'hun', 'krta', 'krna', 'rha', 'rhi', 'tha', 'lena', 'dena', 'wala', 'wali',
+]);
+
+/** is this Romanized Hindi / Hinglish? Two Hindi words, or one in a message of three words or fewer ("haan", "acha bhai"). */
+export function isHinglish(text: string): boolean {
+  const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+  const hits = words.filter((w) => HINDI.has(w)).length;
+  return hits >= 2 || (hits >= 1 && words.length <= 3);
+}
+
 /** share of letters that are uppercase; 0 when there are fewer than 5 letters */
 export function capsRatio(text: string): number {
   const letters = text.replace(/[^a-zA-Z]/g, '');

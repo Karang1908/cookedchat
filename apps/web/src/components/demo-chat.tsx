@@ -17,12 +17,13 @@ const SCRIPT: Ev[] = [
   { k: 'ai', label: 'typing spy', text: 'Riya typed for 41 seconds and sent “k”. we all saw it 👁️', aura: 'Riya −300 aura' },
   { k: 'msg', who: 'Dev', text: "wait i'll reply later", react: '🥀' },
   { k: 'msg', who: 'You', text: 'dev you said that yesterday', mine: true },
-  { k: 'msg', who: 'Aman', text: 'pizza or biryani', react: '🍟' },
+  { k: 'msg', who: 'Aman', text: 'bro got fanum taxed lol', react: '👴' },
+  { k: 'ai', label: 'unc alert', text: '"fanum tax" in 2026? ok unc 👴', aura: 'Aman −50 aura' },
   { k: 'msg', who: 'Riya', text: '67' },
   { k: 'ai', label: '67', text: 'SIX SEVEN. the prophecy is fulfilled 🗿', aura: 'Riya +67 aura' },
 ];
 
-const AVATAR: Record<string, string> = { Aman: 'bg-[#5b8def]', Riya: 'bg-[#d0679a]', Dev: 'bg-[#4fb38a]' };
+const TONE: Record<string, string> = { Aman: 'bg-sky', Riya: 'bg-pink', Dev: 'bg-mint' };
 
 export function DemoChat() {
   const [n, setN] = useState(1);
@@ -48,44 +49,44 @@ export function DemoChat() {
 
   const shown = SCRIPT.slice(0, n).filter((e) => e.k !== 'typing');
   return (
-    <div aria-hidden className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[22px] border border-line bg-panel shadow-[0_30px_80px_-30px_rgb(0_0_0/0.8)]">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3">
+    <div aria-hidden className="brut-lg relative mx-auto w-full max-w-[420px] rotate-1 overflow-hidden rounded-[26px] bg-panel">
+      <div className="flex items-center justify-between border-b-[2.5px] border-line bg-surface px-4 py-3">
         <div>
-          <div className="text-sm font-semibold">the group chat</div>
-          <div className="text-xs text-faint">4 people · 1 AI</div>
+          <div className="font-display text-lg uppercase leading-none">the group chat</div>
+          <div className="mt-0.5 text-xs font-semibold text-muted">4 people · 1 AI</div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <span className="h-1.5 w-16 overflow-hidden rounded-full bg-surface"><span className="block h-full w-2/5 rounded-full bg-accent" /></span>
-          cooked 38%
+        <div className="flex items-center gap-2 font-mono text-xs font-bold">
+          <span className="h-3.5 w-16 overflow-hidden rounded-full border-2 border-line bg-surface"><span className="stripes block h-full w-2/5 border-r-2 border-line bg-accent" /></span>
+          38%
         </div>
       </div>
       <div className="flex h-[360px] flex-col sm:h-[440px] justify-end gap-2 overflow-hidden px-4 py-4">
         <AnimatePresence initial={false}>
           {shown.map((e, i) =>
             e.k === 'ai' ? (
-              <motion.div key={i} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="my-1 border-l-2 border-accent py-0.5 pl-3">
-                <div className="text-[11px] font-semibold text-accent">👹 Gen Z Gremlin <span className="font-normal text-faint">· {e.label}</span></div>
-                <div className="text-[14px] font-medium leading-snug">{e.text}</div>
-                {e.aura && <div className="mt-1 inline-block rounded-md bg-surface px-1.5 py-0.5 font-mono text-[11px] text-muted">{e.aura}</div>}
+              <motion.div key={i} layout initial={{ opacity: 0, y: 8, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -1 }} className="brut-sm my-1.5 rounded-xl bg-acid px-3 py-2">
+                <div className="text-[11px] font-extrabold uppercase tracking-wide">👹 Gen Z Gremlin <span className="ml-1 rounded bg-fg px-1 font-mono text-[9px] text-acid">{e.label}</span></div>
+                <div className="mt-0.5 text-[14px] font-bold leading-snug">{e.text}</div>
+                {e.aura && <div className="mt-1.5 inline-block rounded-md border-[1.5px] border-line bg-surface px-1.5 font-mono text-[11px] font-bold">{e.aura}</div>}
               </motion.div>
             ) : (
               e.k === 'msg' && (
                 <motion.div key={i} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={clsx('flex items-end gap-2', e.mine && 'flex-row-reverse')}>
-                  {!e.mine && <span className={clsx('grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white', AVATAR[e.who])}>{e.who[0]}</span>}
-                  <div className={clsx('relative max-w-[75%] rounded-2xl px-3 py-1.5 text-[14px] leading-snug', e.mine ? 'rounded-br-md bg-[#ececf1] text-[#111]' : 'rounded-bl-md bg-surface')}>
-                    {!e.mine && <div className="text-[11px] font-semibold text-muted">{e.who}</div>}
+                  {!e.mine && <span className={clsx('grid size-7 shrink-0 place-items-center rounded-lg border-2 border-line text-[11px] font-extrabold', TONE[e.who])}>{e.who[0]}</span>}
+                  <div className={clsx('brut-sm relative max-w-[75%] rounded-2xl px-3 py-1.5 text-[14px] font-medium leading-snug', e.mine ? 'rounded-br-[5px] bg-accent' : clsx('rounded-bl-[5px]', TONE[e.who]))}>
+                    {!e.mine && <div className="text-[11px] font-extrabold">{e.who}</div>}
                     {e.text}
-                    {e.react && <span className="absolute -bottom-2.5 -right-2 rounded-full border border-line bg-raised px-1 text-xs">{e.react}</span>}
+                    {e.react && <span className="absolute -bottom-3 -right-2 rounded-full border-[1.5px] border-line bg-acid px-1 text-xs">{e.react}</span>}
                   </div>
                 </motion.div>
               )
             ),
           )}
         </AnimatePresence>
-        <div className="h-5 text-xs text-faint">{typing && `${typing} is typing…`}</div>
+        <div className="h-5 text-xs font-semibold text-muted">{typing && `${typing} is typing…`}</div>
       </div>
-      <div className="border-t border-line p-3">
-        <div className="flex h-10 items-center rounded-xl bg-surface px-3 text-sm text-faint">say something…</div>
+      <div className="border-t-[2.5px] border-line bg-surface p-3">
+        <div className="flex h-10 items-center rounded-xl border-2 border-line bg-surface px-3 text-sm font-medium text-faint">say something…</div>
       </div>
     </div>
   );

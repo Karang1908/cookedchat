@@ -23,7 +23,7 @@ export class GameLoop implements OnModuleInit, OnModuleDestroy {
 
   tickAll(): void {
     for (const room of this.rooms.all()) {
-      const watched = room.adminSockets.size > 0 || [...room.sockets.values()].some((s) => s.size > 0);
+      const watched = room.watchers.size > 0 || [...room.sockets.values()].some((s) => s.size > 0);
       if (!watched && Date.now() - room.lastActiveAt > (this.rooms.persistent ? EVICT_AFTER_MS.persistent : EVICT_AFTER_MS.memoryOnly)) {
         this.rooms.evict(room);
         this.log.log(`evicted idle room ${room.code}`);

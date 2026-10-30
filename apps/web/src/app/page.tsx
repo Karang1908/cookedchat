@@ -2,19 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Clock, Eye, Flame, MessageSquareOff, Scale, Sparkles, Swords, Trophy } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { DemoChat } from '@/components/demo-chat';
 import { Button, Wordmark, fieldCls } from '@/components/ui';
 import { createSocket } from '@/lib/socket';
 
 const NOTICES = [
-  { icon: Clock, title: 'Reply speed', body: 'The 4-hour "lol". The suspiciously instant reply to one person only.' },
-  { icon: Eye, title: 'Typing drama', body: 'Typed for a minute, sent "ok". The bubble that appeared and vanished.' },
-  { icon: MessageSquareOff, title: 'Dry texts', body: '"k" vs "k." vs "OKAY". It hears the difference.' },
-  { icon: Flame, title: 'Unhinged takes', body: 'Every message gets an Ohio score. Big claims get put to a vote.' },
-  { icon: Trophy, title: 'Aura, with receipts', body: 'Every point gained or lost is logged with the exact message that caused it.' },
-  { icon: Swords, title: 'Games', body: 'Rizz battles, hot takes, a betting market on who replies first.' },
+  { emoji: '⏳', title: 'Reply speed', body: 'The 4-hour "lol". The suspiciously instant reply to one person only.', tone: 'bg-pink', tilt: '-rotate-2' },
+  { emoji: '👁️', title: 'Typing drama', body: 'Typed for a minute, sent "ok". The bubble that appeared and vanished.', tone: 'bg-sky', tilt: 'rotate-1' },
+  { emoji: '🥀', title: 'Dry texts', body: '"k" vs "k." vs "acha". It hears the difference.', tone: 'bg-lemon', tilt: '-rotate-1' },
+  { emoji: '👴', title: 'Expired slang', body: 'Say "fanum tax" in 2026 and you get called unc. -50 aura.', tone: 'bg-grape', tilt: 'rotate-2' },
+  { emoji: '🧾', title: 'Aura, with receipts', body: 'Every point gained or lost is logged with the exact message that caused it.', tone: 'bg-mint', tilt: '-rotate-1' },
+  { emoji: '⚔️', title: 'Games', body: 'Rizz battles, hot takes, "chat is this real?" votes, a betting market on who replies first.', tone: 'bg-peach', tilt: 'rotate-1' },
 ];
+const SLANG = ['6 7', 'aura farming', 'crash out', 'unc behaviour', 'chopped', 'clanker', 'delulu', 'baad mein reply karta hu', 'quiet on the creek', 'larping', 'chin tapak dum dum', 'wow vs chee'];
 
 export default function Landing() {
   const router = useRouter();
@@ -51,91 +52,100 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh overflow-x-hidden">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <Wordmark />
+        <Wordmark className="text-[22px]" />
         <form onSubmit={join} className="flex items-center gap-2">
-          <input value={code} onChange={(e) => setCode(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase())} placeholder="CODE" aria-label="Room code" autoCapitalize="characters" className={`${fieldCls} h-9 w-[5.5rem] text-center font-mono tracking-[0.2em]`} />
+          <input value={code} onChange={(e) => setCode(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase())} placeholder="CODE" aria-label="Room code" autoCapitalize="characters" className={`${fieldCls} h-9 w-[5.5rem] text-center font-mono font-bold tracking-[0.2em]`} />
           <Button size="sm" disabled={code.length !== 4}>Join</Button>
         </form>
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-16">
-          <div>
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-xs font-medium text-muted">
-              <Sparkles size={13} className="text-accent" /> An AI that lives in your group chat
+        <section className="mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-6 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12">
+          <div className="relative">
+            <p className="brut-sm mb-6 inline-flex -rotate-2 items-center gap-2 rounded-lg bg-surface px-3 py-1 text-sm font-bold">
+              <span aria-hidden>🤖</span> an AI that lives in your group chat
             </p>
-            <h1 className="max-w-xl text-[clamp(2.4rem,5.4vw,4rem)] font-bold leading-[1.04] tracking-[-0.035em]">
-              Everyone notices the dry “k”. Now something says it out loud.
+            <h1 className="font-display text-[clamp(3.2rem,8.2vw,6.4rem)] uppercase leading-[0.92] tracking-[0.005em]">
+              Your group chat is about to get{' '}
+              <span className="relative inline-block -rotate-2 rounded-xl border-[3px] border-line bg-accent px-3 shadow-[6px_6px_0_var(--color-line)]">cooked</span>
             </h1>
-            <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted">
-              Cooked is a group chat with an AI member. It watches how people actually text, the 4-hour reply, the typing bubble that vanishes, the “k” after a paragraph, and roasts it. Then it keeps score.
+            <p className="mt-7 max-w-lg text-lg font-medium leading-relaxed text-muted [text-wrap:pretty]">
+              Cooked is a group chat with an AI member. It watches <b className="font-extrabold text-fg">how</b> people text: the 4-hour reply, the typing bubble that vanishes, the &ldquo;k&rdquo; after a paragraph. Then it roasts it and keeps score.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button variant="primary" size="lg" onClick={create} disabled={busy}>
-                {busy ? 'Opening a room…' : 'Start a room'} <ArrowRight size={17} />
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <Button variant="primary" size="lg" onClick={create} disabled={busy} className="h-14 px-7 text-lg">
+                {busy ? 'Opening a room…' : 'Start a room'} <ArrowRight size={20} strokeWidth={2.75} />
               </Button>
-              <a href="#how" className="text-sm font-semibold text-muted transition-colors hover:text-fg">How it works</a>
+              <a href="#how" className="text-sm font-extrabold underline decoration-[3px] decoration-acid underline-offset-4 hover:decoration-accent">How it works</a>
             </div>
-            {err && <p role="alert" className="mt-3 text-sm text-warn">{err}</p>}
-            <p className="mt-6 text-xs text-faint">Free, no sign-up. Everyone is told the AI roasts when they join. It roasts behavior, never identity.</p>
+            {err && <p role="alert" className="brut-sm mt-4 inline-block rounded-lg bg-lemon px-3 py-1.5 text-sm font-bold">{err}</p>}
+            <p className="mt-6 text-xs font-semibold text-faint">Free, no sign-up. It roasts behaviour, never identity.</p>
+            <span className="wiggle brut-sm absolute -right-2 top-0 hidden rounded-lg bg-bad px-2 py-1 font-display text-xl uppercase text-white [--r:8deg] sm:block" aria-hidden>-500 aura</span>
           </div>
-          <DemoChat />
-        </section>
-
-        <section className="border-t border-line bg-panel/60">
-          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-            <h2 className="text-2xl font-bold tracking-tight">What it notices</h2>
-            <div className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
-              {NOTICES.map(({ icon: Icon, title, body }) => (
-                <div key={title} className="flex gap-3.5">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface ring-1 ring-line"><Icon size={17} className="text-accent" /></span>
-                  <div>
-                    <h3 className="font-semibold">{title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="relative">
+            <span className="wiggle absolute -left-6 -top-8 z-10 text-6xl drop-shadow-[3px_3px_0_var(--color-line)] [--r:-12deg]" aria-hidden>💀</span>
+            <span className="brut-sm absolute -bottom-5 -right-3 z-10 rotate-6 rounded-lg bg-grape px-2 py-1 text-sm font-extrabold uppercase" aria-hidden>unc alert 👴</span>
+            <span className="wiggle absolute -right-5 top-16 z-10 text-5xl drop-shadow-[3px_3px_0_var(--color-line)] [--r:10deg]" aria-hidden>🗿</span>
+            <DemoChat />
           </div>
         </section>
 
-        <section id="how" className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2">
+        <div className="-rotate-1 border-y-[3px] border-line bg-fg py-3" aria-hidden>
+          <div className="marquee flex w-max gap-8 whitespace-nowrap font-display text-2xl uppercase tracking-wide text-acid">
+            {[...SLANG, ...SLANG].map((w, i) => <span key={i}>{w} <span className="text-accent">✦</span></span>)}
+          </div>
+        </div>
+
+        <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
+          <h2 className="font-display text-5xl uppercase leading-none">What it notices</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {NOTICES.map((n) => (
+              <div key={n.title} className={`brut press rounded-2xl p-5 ${n.tone} ${n.tilt}`}>
+                <div className="text-4xl" aria-hidden>{n.emoji}</div>
+                <h3 className="mt-3 text-xl font-extrabold">{n.title}</h3>
+                <p className="mt-1 text-[15px] font-medium leading-relaxed">{n.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="how" className="mx-auto grid max-w-6xl gap-12 px-5 pb-20 sm:px-8 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">How it works</h2>
-            <ol className="mt-6 space-y-5">
+            <h2 className="font-display text-5xl uppercase leading-none">How it works</h2>
+            <ol className="mt-8 space-y-5">
               {[
                 ['Start a room', 'You get a four-letter code and a QR code.'],
                 ['Everyone scans in', 'Pick a name and a creature. No accounts.'],
-                ['Just chat', 'The AI watches, reacts, keeps the aura board, and drops in when something is actually worth saying.'],
+                ['Just chat', 'The AI watches, reacts, keeps the aura board, and drops in when something is worth saying. Call it by its name ("gremlin", "ai") to talk to it.'],
               ].map(([t, b], i) => (
                 <li key={t} className="flex gap-4">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-accent/12 font-mono text-xs font-bold text-accent">{i + 1}</span>
+                  <span className="brut-sm grid size-12 shrink-0 -rotate-3 place-items-center rounded-xl bg-acid font-display text-2xl">{i + 1}</span>
                   <div>
-                    <div className="font-semibold">{t}</div>
-                    <div className="mt-0.5 text-sm text-muted">{b}</div>
+                    <div className="text-lg font-extrabold">{t}</div>
+                    <div className="mt-0.5 font-medium text-muted">{b}</div>
                   </div>
                 </li>
               ))}
             </ol>
           </div>
-          <div className="rounded-2xl border border-line bg-panel p-6">
-            <div className="flex items-center gap-2 text-sm font-semibold"><Scale size={16} className="text-accent" /> It knows when to shut up</div>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              Comedy is timing. The AI speaks about once every few messages and never twice in a row. Most of the time it just reacts with an emoji. The big moments (a 67, a mog, the room hitting 100% cooked) always get through.
+          <div className="brut-lg rotate-1 rounded-2xl bg-surface p-7">
+            <div className="text-lg font-extrabold">🤫 It knows when to shut up</div>
+            <p className="mt-3 font-medium leading-relaxed text-muted">
+              Comedy is timing. The AI speaks about once every few messages and never twice in a row. Most of the time it just reacts with an emoji. The big moments (a 67, a mog, the room hitting 100% cooked) always get through, and so does anyone who talks to it directly.
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-              Running a demo? The admin panel lets you tune how chatty it is, warp the room clock, stage any moment on cue, and put two AIs (Groq vs Ollama) in the room to roast each other.
+            <p className="mt-3 font-medium leading-relaxed text-muted">
+              Running a demo? The admin panel tunes how chatty it is, warps the room clock, stages any moment on cue, and puts two AIs (Groq vs Gemma on Ollama) in the room to roast each other.
             </p>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-faint sm:px-8">
-          <Wordmark className="text-sm" />
-          <span>Roasts behavior, never identity.</span>
+      <footer className="border-t-[3px] border-line bg-panel">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm font-semibold sm:px-8">
+          <Wordmark />
+          <span>made by <b className="font-extrabold">team struct</b> · Karan Garg &amp; Anushka Mohanty</span>
         </div>
       </footer>
     </div>

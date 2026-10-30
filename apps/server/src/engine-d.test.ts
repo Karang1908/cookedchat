@@ -38,6 +38,7 @@ function build(gifs?: { find(q: string): Promise<string | null> }) {
   const room = new Room('TEST', middayTz());
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
   room.settings.aiEvery = 0;
+  room.settings.chime = false;
   const add = (id: string, name: string) => (engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`), id);
   return { bus, writer, engine, room, add };
 }

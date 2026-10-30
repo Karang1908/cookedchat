@@ -23,6 +23,8 @@ export interface RoomActions {
   awards(): R;
   wrapped(memberId?: string): R;
   makeMeme(id: string): R;
+  roastMe(): R;
+  roastRoom(): R;
   translate(id: string, mode: 'brainrot' | 'plain' | 'dry'): Promise<{ text: string; via: 'ai' | 'rules' } | { error: string }>;
 }
 
@@ -68,6 +70,8 @@ export function useBuildActions(socket: React.RefObject<CookedSocket | null>, me
       awards: () => call(s(), (k, ack) => k.emit('awards:get', ack)),
       wrapped: (memberId) => call(s(), (k, ack) => k.emit('wrapped:get', { memberId }, ack)),
       makeMeme: (id) => call(s(), (k, ack) => k.emit('meme:make', { id }, ack)),
+      roastMe: () => call(s(), (k, ack) => k.emit('roast:me', ack)),
+      roastRoom: () => call(s(), (k, ack) => k.emit('roast:room', ack)),
       translate: (id, mode) =>
         new Promise((resolve) => {
           const k = s();

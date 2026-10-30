@@ -18,6 +18,8 @@ interface SocketData {
   code?: string;
   memberId?: string;
   isAdmin?: boolean;
+  /** a read-only spectator (stage screen) */
+  watcher?: boolean;
 }
 type Sock = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
@@ -45,8 +47,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   async handleDisconnect(socket: Sock) {
-    const { code, memberId, isAdmin } = socket.data;
-    if (isAdmin) this.rooms.all().find((r) => r.code === code)?.adminSockets.delete(socket.id);
+    const { code, memberId, isAdmin, watcher } = socket.data;
+    if (isAdmin || watcher) this.rooms.all().find((r) => r.code === code)?.watchers.delete(socket.id);
     if (!code || !memberId || isAdmin) return;
     const room = await this.rooms.ensure(code);
     if (room) this.engine.leave(room, memberId, socket.id);
@@ -197,9 +199,39 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:vibe')
-  vibe(@ConnectedSocket() socket: Sock, @MessageBody() p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity }) {
+  vibe(@ConnectedSocket() socket: Sock, @MessageBody() p: { persona?: PersonaId; brainrot?: BrainrotLevel; intensity?: RoastIntensity; duel?: boolean }) {
     const c = this.ctx(socket);
     if (c && p && typeof p === 'object') this.engine.setVibe(c.room, c.memberId, p);
+  }
+
+  @SubscribeMessage('duel:start')
+  duelStart(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.startDuel(c.room, c.memberId) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('roast:me')
+  roastMe(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.roastMe(c.room, c.memberId) : { ok: false, error: 'join a room first' };
+  }
+
+  @SubscribeMessage('roast:room')
+  roastRoom(@ConnectedSocket() socket: Sock): Ack {
+    const c = this.ctx(socket);
+    return c ? this.engine.roastRoom(c.room) : { ok: false, error: 'join a room first' };
+  }
+
+  /** the stage screen: sees everything, is nobody, can do nothing */
+  @SubscribeMessage('room:watch')
+  async watch(@ConnectedSocket() socket: Sock, @MessageBody() p: { code: string }): Promise<Ack<{ snapshot: RoomSnapshot }>> {
+    const code = normalizeCode(p?.code);
+    const room = code ? await this.rooms.ensure(code) : null;
+    if (!room) return { ok: false, error: 'room not found' };
+    socket.data = { code: room.code, watcher: true };
+    room.watchers.add(socket.id);
+    await socket.join(room.code);
+    return { ok: true, snapshot: room.snapshot() };
   }
 
   @SubscribeMessage('chat:seen')
@@ -230,9 +262,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
     const code = normalizeCode(p?.code);
     const room = code ? await this.rooms.ensure(code) : null;
     if (!room) return { ok: false, error: 'room not found' };
-    if (socket.data.isAdmin) this.rooms.all().find((r) => r.code === socket.data.code)?.adminSockets.delete(socket.id);
+    if (socket.data.isAdmin) this.rooms.all().find((r) => r.code === socket.data.code)?.watchers.delete(socket.id);
     socket.data = { code: room.code, memberId: undefined, isAdmin: true };
-    room.adminSockets.add(socket.id);
+    room.watchers.add(socket.id);
     await socket.join(room.code);
     return { ok: true, snapshot: room.snapshot() };
   }
@@ -302,6 +334,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayDisconnect {
   adminSimulate(@ConnectedSocket() s: Sock, @MessageBody() p: { kind: SimulateKind; memberId?: string }) {
     const room = this.admin(s);
     if (room && SIMULATE_KINDS.includes(p?.kind)) this.engine.simulate(room, p.kind, p.memberId ? str(p.memberId, 64) : undefined).catch((e) => this.log.error(e));
+  }
+
+  @SubscribeMessage('admin:showtime')
+  adminShowtime(@ConnectedSocket() s: Sock) {
+    const room = this.admin(s);
+    if (room) this.engine.showtime(room);
+  }
+
+  @SubscribeMessage('admin:roastRoom')
+  adminRoastRoom(@ConnectedSocket() s: Sock) {
+    const room = this.admin(s);
+    if (room) this.engine.roastRoom(room);
   }
 
   @SubscribeMessage('admin:force')

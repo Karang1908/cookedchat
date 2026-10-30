@@ -103,6 +103,15 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
       </header>
 
       <main className="mx-auto grid max-w-[1400px] gap-4 px-4 py-5 lg:grid-cols-3">
+        <div className="brut flex flex-wrap items-center gap-3 rounded-2xl bg-acid p-4 lg:col-span-3">
+          <div className="mr-auto">
+            <div className="font-display text-2xl uppercase leading-none">Demo controls</div>
+            <div className="mt-1 text-xs font-semibold">Open the stage screen on the projector, let the judges scan the QR, then hit Showtime.</div>
+          </div>
+          <a href={`/stage/${code}`} target="_blank" rel="noreferrer" className="brut-sm press rounded-xl bg-surface px-4 py-2.5 text-sm font-extrabold">📺 Stage screen ↗</a>
+          <Button size="lg" variant="secondary" onClick={() => emit.current?.emit('admin:roastRoom')}>🎤 Roast everyone</Button>
+          <Button size="lg" variant="primary" onClick={() => emit.current?.emit('admin:showtime')}>🎬 Showtime</Button>
+        </div>
         <div className="space-y-4">
           <Card title="AI behaviour">
             <Field label="Persona">
@@ -123,6 +132,8 @@ function Panel({ code, adminKey, onBadKey }: { code: string; adminKey: string; o
             <div className="-mx-1 divide-y divide-line">
               <Switch checked={settings.commentary} onChange={(v) => set({ commentary: v })} label="AI commentary" hint="off = aura and effects keep running, the AI stays silent" />
               <Switch checked={settings.duel} onChange={(v) => set({ duel: v })} label="AI duel: Groq vs Ollama" hint="each roast gets a reply from the other model; in lulls they roast each other" />
+              <Switch checked={settings.chime} onChange={(v) => set({ chime: v })} label="AI joins the conversation" hint="besides roasts, it chimes in on normal chat every few messages" />
+              <Switch checked={settings.explicit} onChange={(v) => set({ explicit: v })} label="Swearing" hint="the AI cusses and trash-talks; turn off before judges or teachers walk up" />
               <Switch checked={settings.chaos} onChange={(v) => set({ chaos: v })} label="Chaos agent" hint="random dares and plot twists" />
               <Switch checked={settings.jumpscare} onChange={(v) => set({ jumpscare: v })} label="Jumpscares" />
               <Switch checked={settings.autopilotBots} onChange={(v) => set({ autopilotBots: v })} label="Bot autopilot" hint="bots chat and play games on their own" />

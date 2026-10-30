@@ -14,6 +14,7 @@ const cards = (s: S, type: string) => s.room.messages.filter((m) => m.card?.type
 
 test('Ohio: scored on every message, 85%+ costs 500 aura with an instant line', async () => {
   const s = setup();
+  s.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   const a = s.add('a', 'Aman');
   const calm = await say(s, a, 'see you at five');
   assert.ok(s.room.messages.find((m) => m.id === calm.id)!.ohio! < 20);
@@ -50,6 +51,7 @@ test('topic derail and crash-out call fire from staged moments', async () => {
   await s.engine.simulate(s.room, 'derail');
   assert.ok(s.writer.calls.some((c) => c.kind === 'derail'));
   const s2 = setup();
+  s2.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   await s2.engine.simulate(s2.room, 'argument');
   assert.ok(s2.bus.ai().some((t) => /crashing out|quiet on the creek/i.test(t)));
 });
@@ -67,6 +69,7 @@ test('simp radar: fast to one person, slow to everyone else, once per pair', asy
 
 test('Duolingo owl: after 9pm, 4h of silence, once per day', async () => {
   const s = setup();
+  s.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   const a = s.add('a', 'Aman');
   s.room.tzOffsetMin = ((17 - new Date().getUTCHours() + 24) % 24) * 60; // 5pm now, so +5h is 10pm
   await say(s, a, 'hello');
@@ -111,6 +114,7 @@ test('betrayal: left on read by someone marked online elsewhere', async () => {
 
 test('scouter: crossing 9000 power announces once; admin aura moves the ledger', async () => {
   const s = setup();
+  s.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   const a = s.add('a', 'Aman');
   s.engine.adminAura(s.room, a, 10_000);
   s.engine.tick(s.room);
@@ -127,6 +131,7 @@ test('scouter: crossing 9000 power announces once; admin aura moves the ledger',
 
 test('class evolution is announced once a member has some history', async () => {
   const s = setup();
+  s.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   const a = s.add('a', 'Aman');
   s.add('b', 'Riya');
   for (let i = 0; i < 3; i++) await say(s, a, `message ${i} about stuff`);
@@ -142,6 +147,7 @@ test('class evolution is announced once a member has some history', async () => 
 
 test('comeback: a reply that earns two reactions mogs the person it answered', async () => {
   const s = setup();
+  s.writer.reply = null; // model down: the canned fallback carries the moment (with a model these go to the LLM, engine-f)
   const a = s.add('a', 'Aman');
   const b = s.add('b', 'Riya');
   const c = s.add('c', 'Dev');
@@ -153,6 +159,7 @@ test('comeback: a reply that earns two reactions mogs the person it answered', a
   s.engine.reactTo(s.room, d, reply.id, '😭');
   assert.equal(s.room.members.get(b)!.aura, 1000);
   assert.equal(s.room.getStats(b).mogs, 1);
+  await new Promise((r) => setTimeout(r, 0)); // the roast asks the model first
   assert.ok(s.bus.ai().some((t) => /mogged/.test(t)));
   s.engine.reactTo(s.room, c, reply.id, '🗿');
   assert.equal(s.room.members.get(b)!.aura, 1000, 'only mogs once per message');

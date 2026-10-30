@@ -6,6 +6,11 @@ import type { TriggerKind } from './types.js';
  */
 export const CANNED: Record<TriggerKind, string[]> = {
   six_seven: ['6 7', 'SIX SEVEN. the prophecy is fulfilled 🗿', '67 detected. everybody lock in 🥀', '6 7 bolke {name} ne poora aura farm kar liya 🗿'],
+  // never posted: a chime-in without a model line stays silent rather than sounding canned
+  chime: ['lol'],
+  joined: ['{name} has entered the chat. the average aura just dropped 🗿', 'welcome {name}. we were literally just talking about you', '{name} joined. somebody hide the receipts 👁️', 'ayo {name} is here. act normal everyone'],
+  roast_me: ['{name} asked to be roasted. honestly the chat history already did it 💀', '{name}, i would roast you but your messages already did 90% of the work', '{name} you wanted this. your texting is a crime scene 🔥'],
+  mention: ['{name} summoned me. i have nothing to say but i am judging 🗿', 'i heard you {name}. i chose silence. aura +0 🫡', 'bhai {name}, abhi busy hoon, baad mein reply karta hu. ironic, right? 🥀', 'the clanker is thinking… it has decided you are cooked, {name} 💀'],
   unc: ['"{term}" in 2026? ok unc 👴 -50 aura', '{name} said "{term}". somebody get unc their reading glasses 👴', '"{term}" bolne wale {name} uncle, chai piyoge? 👴', 'that slang expired before the group chat was made, unc 🥀'],
   reply_later: ['"i\'ll reply later" is crazy, {name} 💀', '{name} said later like later is a real place 🥀', '"baad mein reply karta hu" — {name}, 2026 ka sabse bada jhooth 🧢', '{name} ka reply ab Panchayat ki tanki pe milega 🫖'],
   typing_drama: ['we all saw {name} type that essay 👁️', '{name} wrote a whole novel and sent a crumb 💀', 'itna type karke bas yeh? {name} ne Mahabharat likh ke "ok" bheja 💀'],

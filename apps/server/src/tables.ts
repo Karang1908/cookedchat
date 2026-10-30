@@ -1,4 +1,4 @@
-import type { FxKind, SoundName, TriggerKind } from '@cooked/shared';
+import type { FxKind, PersonaId, SoundName, TriggerKind } from '@cooked/shared';
 
 export interface Hit {
   kind: TriggerKind;
@@ -6,22 +6,24 @@ export interface Hit {
   fact: string;
   /** placeholders for the canned fallback line */
   vars?: Record<string, string | number>;
+  /** a direct mention: which persona was named (or replied to), so that one answers */
+  speaker?: PersonaId;
 }
 
 export const PRIORITY: Partial<Record<TriggerKind, number>> = {
-  six_seven: 10, cooked_max: 10, mog: 9, tung_tung: 9, betrayal: 8, typing_drama: 8, slow_reply: 8, reply_later: 8, vote_result: 8, battle_result: 8, bet_result: 8,
+  six_seven: 10, cooked_max: 10, mention: 10, roast_me: 10, joined: 9, chime: 5, mog: 9, tung_tung: 9, betrayal: 8, typing_drama: 8, slow_reply: 8, reply_later: 8, vote_result: 8, battle_result: 8, bet_result: 8,
   left_on_read: 7, ohio_high: 7, crash_out: 7, owl: 7, missing: 7, burst: 6, typed_deleted: 6, cap: 6, tone_shift: 6, simp_radar: 6, scouter: 6,
   edited: 5, deleted: 5, unc: 5, derail: 6, class_change: 5, chaos: 5, dead_chat: 4, lore: 7, weather: 4, replay: 4, copypasta: 4, dry_reply: 3,
 };
 
 /** cheap, funny, and must never wait on an LLM (also keeps the free-tier token budget for the moments that need wit) */
 export const INSTANT = new Set<TriggerKind>([
-  'six_seven', 'unc', 'tung_tung', 'cooked_max', 'crash_out', 'mog', 'scouter', 'class_change', 'owl', 'missing', 'chaos', 'weather', 'copypasta',
-  'vote_result', 'battle_result', 'bet_result', 'ohio_high',
+  // only punchlines that must land with their effect, and announcements. Everything personal goes to the model: canned lines read like a bot.
+  'six_seven', 'cooked_max', 'chaos', 'weather', 'copypasta', 'missing', 'vote_result', 'battle_result', 'bet_result',
 ]);
 
 export const REACTION: Partial<Record<TriggerKind, string>> = {
-  six_seven: '🗿', unc: '👴', typing_drama: '👁️', slow_reply: '💀', reply_later: '🥀', burst: '😭', dry_reply: '💀', edited: '🧐', deleted: '🫡',
+  six_seven: '🗿', unc: '👴', mention: '👀', typing_drama: '👁️', slow_reply: '💀', reply_later: '🥀', burst: '😭', dry_reply: '💀', edited: '🧐', deleted: '🫡',
   left_on_read: '👁️', ohio_high: '🫩', cap: '🧢', tone_shift: '🥶', derail: '🗿',
 };
 
@@ -48,4 +50,6 @@ export const EFFECTS: Partial<Record<TriggerKind, { fx?: { kind: FxKind; emoji?:
   battle_result: { fx: [{ kind: 'confetti' }], sound: 'airhorn' },
   bet_result: { sound: 'pipe' },
   duel: { sound: 'vineBoom' },
+  roast_me: { fx: [{ kind: 'shake' }], sound: 'vineBoom' },
+  joined: { sound: 'dunDunDun' },
 };

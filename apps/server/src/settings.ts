@@ -17,6 +17,8 @@ export function applySettingsPatch(cur: RoomSettings, patch: SettingsPatch): Roo
   if (typeof patch.chaos === 'boolean') next.chaos = patch.chaos;
   if (typeof patch.jumpscare === 'boolean') next.jumpscare = patch.jumpscare;
   if (typeof patch.duel === 'boolean') next.duel = patch.duel;
+  if (typeof patch.explicit === 'boolean') next.explicit = patch.explicit;
+  if (typeof patch.chime === 'boolean') next.chime = patch.chime;
   if (typeof patch.aiEvery === 'number' && Number.isFinite(patch.aiEvery)) next.aiEvery = Math.max(0, Math.min(20, Math.round(patch.aiEvery)));
   if (patch.rival === null || (typeof patch.rival === 'string' && patch.rival in PERSONAS)) next.rival = patch.rival as PersonaId | null;
   for (const [k, v] of Object.entries(patch.timings ?? {})) {

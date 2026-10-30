@@ -57,6 +57,8 @@ export class Room {
   readonly translateTimes = new Map<string, number[]>();
   readonly lastWrappedAt = new Map<string, number>();
   lastMemeAt = 0;
+  /** real time of the last member-started duel ("⚔️ Duel" button) */
+  lastDuelAt = 0;
   lastRecapAt = 0;
   lastAwardsAt = 0;
   readonly lastConfessAt = new Map<string, number>();
@@ -91,8 +93,12 @@ export class Room {
   readonly lastVibeAt = new Map<string, number>();
   /** real time of the last model-picked GIF, per side ('main' | 'groq' | 'ollama') */
   readonly lastGifAt = new Map<string, number>();
-  /** admin panel sockets watching this room (not members): an idle room is only evicted when nobody is watching */
-  readonly adminSockets = new Set<string>();
+  /** sockets watching without being members (admin panel, stage screen): an idle room is only evicted when nobody is watching */
+  readonly watchers = new Set<string>();
+  /** roast-me cooldowns (real time) per member, and the room-wide roast session / showtime */
+  readonly lastRoastAt = new Map<string, number>();
+  lastRoastRoomAt = 0;
+  showtime = false;
 
   cookedSent = 0;
   lastCommentAt = 0; // real

@@ -38,6 +38,13 @@ export function GamesPanel() {
 
   return (
     <section className="space-y-6" aria-label="Games">
+      <Section title="Get roasted">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="primary" onClick={() => void run('incoming…', a.roastMe())}>🔥 Roast me</Button>
+          <Button variant="primary" className="bg-acid hover:bg-acid" onClick={() => void run('roast session starting…', a.roastRoom())}>🎤 Roast everyone</Button>
+        </div>
+      </Section>
+
       <Section title="Ask the AI" action={<span className="font-mono text-xs text-faint">{me?.coins ?? 0} 🪙</span>}>
         <div className="grid grid-cols-2 gap-2">
           <Button size="sm" onClick={() => void run('forecast posted', a.forecast())}>🌦️ chat forecast</Button>

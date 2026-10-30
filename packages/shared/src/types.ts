@@ -34,6 +34,10 @@ export type TriggerKind =
   | 'bet_result'
   | 'six_seven'
   | 'unc'
+  | 'mention'
+  | 'chime'
+  | 'joined'
+  | 'roast_me'
   | 'reply_later'
   | 'typing_drama'
   | 'typed_deleted'
@@ -126,6 +130,10 @@ export interface RoomSettings {
    * Core jokes need half, big moments one. Two AI turns in a row never happen. 0 = only that last rule.
    */
   aiEvery: number;
+  /** the AI may swear and trash-talk (hard limits on identity still apply). Admin switch: flip off before judges walk up. */
+  explicit: boolean;
+  /** the AI joins ordinary conversation (chime-ins), not only roast-worthy moments */
+  chime: boolean;
   timings: RoomTimings;
 }
 
@@ -140,6 +148,8 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   rival: null,
   duel: false,
   aiEvery: 4,
+  explicit: true,
+  chime: true,
   timings: DEFAULT_TIMINGS,
 };
 

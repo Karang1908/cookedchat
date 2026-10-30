@@ -9,7 +9,7 @@ import { playSound } from './sounds';
 import { createSocket } from './socket';
 import type { CookedSocket } from './socket';
 
-export type Mode = { kind: 'member'; identity: Identity } | { kind: 'admin'; key: string };
+export type Mode = { kind: 'member'; identity: Identity } | { kind: 'admin'; key: string } | { kind: 'watch' };
 
 export interface RoomView {
   status: 'idle' | 'connecting' | 'joining' | 'ready' | 'error';
@@ -78,7 +78,7 @@ function reducer(s: RoomView, a: Action): RoomView {
 export function useLiveRoom(code: string, mode: Mode | null): { state: RoomView; socket: React.RefObject<CookedSocket | null> } {
   const [state, dispatch] = useReducer(reducer, initial);
   const socketRef = useRef<CookedSocket | null>(null);
-  const modeKey = !mode ? null : mode.kind === 'member' ? `m:${mode.identity.memberId}:${mode.identity.name}:${mode.identity.avatar}` : `a:${mode.key}`;
+  const modeKey = !mode ? null : mode.kind === 'member' ? `m:${mode.identity.memberId}:${mode.identity.name}:${mode.identity.avatar}` : mode.kind === 'admin' ? `a:${mode.key}` : 'watch';
 
   useEffect(() => {
     if (!mode) return;
@@ -90,6 +90,8 @@ export function useLiveRoom(code: string, mode: Mode | null): { state: RoomView;
       dispatch({ type: 'status', status: 'joining' });
       if (mode.kind === 'member') {
         socket.emit('room:join', { code, ...mode.identity }, (a) => (a.ok ? dispatch({ type: 'snapshot', snapshot: a.snapshot, meId: mode.identity.memberId }) : dispatch({ type: 'error', error: a.error })));
+      } else if (mode.kind === 'watch') {
+        socket.emit('room:watch', { code }, (a) => (a.ok ? dispatch({ type: 'snapshot', snapshot: a.snapshot }) : dispatch({ type: 'error', error: a.error })));
       } else {
         socket.emit('admin:auth', { key: mode.key, code }, (a) => (a.ok ? dispatch({ type: 'snapshot', snapshot: a.snapshot }) : dispatch({ type: 'error', error: a.error })));
       }

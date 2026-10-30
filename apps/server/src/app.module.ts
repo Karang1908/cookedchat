@@ -23,7 +23,7 @@ const ROUTER = Symbol('ROUTER');
     { provide: STORE, useFactory: (c: Config): Store => (c.databaseUrl ? new PgStore(c.databaseUrl, c.databaseSsl) : new NullStore()), inject: [CONFIG] },
     { provide: ROUTER, useFactory: (c: Config) => buildRouter(c), inject: [CONFIG] },
     SocketBus,
-    { provide: Engine, useFactory: (bus: SocketBus, store: Store, router: LlmRouter, c: Config) => new Engine({ bus, store, writer: new LlmCommentator(router), gifs: c.giphyKey ? new GiphyFinder(c.giphyKey, fetch, c.giphyBase) : undefined }), inject: [SocketBus, STORE, ROUTER, CONFIG] },
+    { provide: Engine, useFactory: (bus: SocketBus, store: Store, router: LlmRouter, c: Config) => new Engine({ bus, store, writer: new LlmCommentator(router), typingMs: (t) => Math.min(2600, 700 + t.length * 20), beatMs: 3500, gifs: c.giphyKey ? new GiphyFinder(c.giphyKey, fetch, c.giphyBase) : undefined }), inject: [SocketBus, STORE, ROUTER, CONFIG] },
     RoomsService,
     GameLoop,
     ChatGateway,

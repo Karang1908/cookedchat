@@ -36,14 +36,14 @@ export function CardView({ m }: { m: ChatMessage }) {
 }
 
 function Shell({ label, tone = 'magenta', children, glow }: { label: string; tone?: 'magenta' | 'sun' | 'mint' | 'blurple'; children: React.ReactNode; glow?: boolean }) {
-  const toneCls = { magenta: 'text-accent', sun: 'text-warn', mint: 'text-good', blurple: 'text-ollama' }[tone];
+  const toneCls = { magenta: 'bg-pink', sun: 'bg-lemon', mint: 'bg-mint', blurple: 'bg-grape' }[tone];
   return (
-    <div className="pop-in mx-auto my-3 w-full max-w-xl rounded-2xl border border-line bg-panel p-4">
-      <div className={clsx('mb-2 flex items-center gap-2 text-xs font-semibold', toneCls)}>
+    <div className="brut pop-in mx-auto my-4 w-full max-w-xl overflow-hidden rounded-2xl bg-surface">
+      <div className={clsx('flex items-center gap-2 border-b-[2.5px] border-line px-4 py-2 text-sm font-extrabold uppercase tracking-wide', toneCls)}>
         {label}
-        {glow && <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-good"><span className="size-1.5 animate-pulse rounded-full bg-good" />live</span>}
+        {glow && <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-line bg-surface px-2 text-[11px] font-bold normal-case tracking-normal"><span className="size-1.5 animate-pulse rounded-full bg-bad" />live</span>}
       </div>
-      {children}
+      <div className="p-4">{children}</div>
     </div>
   );
 }
@@ -91,8 +91,8 @@ function VoteCard({ m, card }: { m: ChatMessage; card: Of<'vote'> }) {
           const won = card.settled?.winner === o.id;
           return (
             <button key={o.id} disabled={closed || isSubject} onClick={() => void run(a.vote(m.id, o.id))} aria-pressed={mine === o.id} aria-label={`Vote ${o.label}`}
-              className={clsx('relative overflow-hidden rounded-xl border px-3 py-2.5 text-left transition enabled:hover:border-line-strong enabled:active:scale-[0.98] disabled:opacity-70', mine === o.id ? 'border-accent/60 bg-accent/10' : 'border-line bg-surface', won && 'border-good ring-2 ring-good/40')}>
-              <span className="absolute inset-y-0 left-0 bg-white/5 transition-all" style={{ width: total ? `${(n / total) * 100}%` : 0 }} />
+              className={clsx('brut-sm press relative overflow-hidden rounded-xl px-3 py-2.5 text-left disabled:opacity-80', mine === o.id ? 'bg-raised' : 'bg-surface', won && 'outline outline-[3px] outline-good')}>
+              <span className="absolute inset-y-0 left-0 bg-acid transition-all" style={{ width: total ? `${(n / total) * 100}%` : 0 }} />
               <span className="relative flex items-center justify-between gap-2">
                 <span className="text-[15px] font-semibold">{o.emoji} {o.label}</span>
                 <span className="font-mono text-sm tabular-nums text-muted">{n}</span>

@@ -135,8 +135,13 @@ test('buildMessages: carries persona, level, intensity, guardrail and the facts'
   });
   assert.equal(m[0]!.role, 'system');
   assert.match(m[0]!.content, /nature documentary/);
-  assert.match(m[0]!.content, /Ohio Final Boss|word salad/);
-  assert.match(m[0]!.content, /never the person's identity/);
+  assert.match(m[0]!.content, /feral/);
+  assert.doesNotMatch(m[0]!.content, /Slang you can/, 'no slang list: it made every line sound like a bot');
+  assert.match(m[0]!.content, /never use them: cringe, unc/);
+  assert.match(m[0]!.content, /Hard limits/);
+  assert.match(m[0]!.content, /Swearing is ON/);
+  assert.match(m[0]!.content, /not like an AI or an assistant/);
+  assert.doesNotMatch(m[0]!.content, /AI member/);
   assert.match(m[0]!.content, /middle of the night/);
   assert.match(m[1]!.content, /Aman/);
   assert.match(m[1]!.content, /Riya: did you see it/);

@@ -9,7 +9,7 @@ import type { ChatMessage, Member, RoomSettings } from '@cooked/shared';
 import { clockTime } from '@/lib/format';
 import { useRoomActions } from '@/lib/room-actions';
 import { Avatar } from '../avatar';
-import { Chip } from '../ui';
+import { Chip, toneFor } from '../ui';
 import { CardView } from './card-view';
 
 interface Props {
@@ -34,7 +34,7 @@ const TRIGGER_LABEL: Record<string, string> = {
   burst: 'burst', dry_reply: 'dry text', edited: 'edit detector', deleted: 'delete detector', left_on_read: 'left on read', dead_chat: 'dead chat', tung_tung: '3am',
   cooked_max: 'cooked', ohio_high: 'ohio', cap: 'cap detector', tone_shift: 'tone shift', derail: 'topic derail', crash_out: 'crash out', simp_radar: 'simp radar',
   missing: 'missing', owl: 'the owl', betrayal: 'betrayal', class_change: 'evolution', scouter: 'scouter', mog: 'mog', lore: 'lore', chaos: 'chaos agent',
-  weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', duel: 'ai vs ai', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
+  mention: 'you asked', chime: 'chimed in', weather: 'forecast', replay: 'instant replay', tiers: 'daily tiers', duel: 'ai vs ai', copypasta: 'copypasta', vote_result: 'verdict', battle_result: 'verdict', bet_result: 'market',
 };
 
 export function MessageList({ messages, members, meId, settings, typingIds, thinking, onEdit, onDelete, onSeen, onReact, onReply, onProfile }: Props) {
@@ -117,16 +117,16 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
         aria-live="polite"
       >
         {messages.length === 0 && (
-          <div className="mx-auto mt-20 max-w-xs text-center">
-            <div className="text-4xl">🗿</div>
-            <p className="mt-3 font-semibold">It&apos;s quiet in here</p>
-            <p className="mt-1 text-sm text-muted">The AI is watching. Invite people with the QR code, then say something.</p>
+          <div className="brut mx-auto mt-16 max-w-xs -rotate-2 rounded-2xl bg-surface p-6 text-center">
+            <div className="wiggle text-5xl">🗿</div>
+            <p className="mt-3 font-display text-2xl uppercase tracking-wide">It&apos;s quiet in here</p>
+            <p className="mt-1 text-sm font-medium text-muted">The AI is watching. Hit QR to invite people, or call the AI by its name (&quot;gremlin&quot;, &quot;ai&quot;) to wake it up.</p>
           </div>
         )}
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           if (m.kind === 'card') return <CardView key={m.id} m={m} />;
-          if (m.kind === 'ai') return <AiCard key={m.id} m={m} latest={m.id === lastAiId} onReact={onReact} meId={meId} />;
+          if (m.kind === 'ai') return <AiCard key={m.id} m={m} latest={m.id === lastAiId} onReact={onReact} onReply={onReply} meId={meId} />;
           const author = m.authorId ? byId.get(m.authorId) : undefined;
           const mine = m.authorId === meId;
           const header = !prev || prev.kind !== 'user' || prev.authorId !== m.authorId || m.at - prev.at > 120_000;
@@ -138,14 +138,14 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
               <div className={clsx('flex min-w-0 max-w-[80%] flex-col', mine ? 'items-end' : 'items-start')}>
                 {header && !mine && (
                   <div className="mb-1 flex items-center gap-1.5 text-[13px]">
-                    <span className="font-semibold text-fg">{author?.name ?? 'unknown'}</span>
+                    <span className="font-extrabold text-fg">{author?.name ?? 'unknown'}</span>
                     {author?.isBot && <Chip>bot</Chip>}
                     <span className="text-[11px] text-faint">{clockTime(m.at)}</span>
                   </div>
                 )}
                 {quoted && (
-                  <div className="mb-1 max-w-full truncate border-l-2 border-line-strong pl-2 text-xs text-faint">
-                    <b className="font-semibold text-muted">{byId.get(quoted.authorId ?? '')?.name ?? '?'}</b> {quoted.deleted ? 'deleted message' : quoted.text}
+                  <div className="mb-1 max-w-full truncate rounded-md border-l-4 border-line bg-surface/70 px-2 py-0.5 text-xs text-muted">
+                    <b className="font-bold text-fg">{quoted.kind === 'ai' ? PERSONAS[quoted.persona ?? settings.persona].label : byId.get(quoted.authorId ?? '')?.name ?? '?'}</b> {quoted.deleted ? 'deleted message' : quoted.text}
                   </div>
                 )}
                 <div className="relative">
@@ -158,18 +158,18 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                         setEditing(null);
                       }}
                     >
-                      <input autoFocus value={editing.draft} onChange={(e) => setEditing({ id: m.id, draft: e.target.value })} onKeyDown={(e) => e.key === 'Escape' && setEditing(null)} className="w-56 rounded-xl border border-accent/70 bg-surface px-3 py-2 text-[15px] outline-none" maxLength={500} />
-                      <button type="submit" aria-label="Save edit" className="rounded-lg bg-good/15 p-1.5 text-good"><Check size={16} /></button>
-                      <button type="button" aria-label="Cancel edit" onClick={() => setEditing(null)} className="rounded-lg bg-surface p-1.5 text-muted"><X size={16} /></button>
+                      <input autoFocus value={editing.draft} onChange={(e) => setEditing({ id: m.id, draft: e.target.value })} onKeyDown={(e) => e.key === 'Escape' && setEditing(null)} className="w-56 rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px] font-medium outline-none" maxLength={500} />
+                      <button type="submit" aria-label="Save edit" className="brut-sm rounded-lg bg-mint p-1.5"><Check size={16} /></button>
+                      <button type="button" aria-label="Cancel edit" onClick={() => setEditing(null)} className="brut-sm rounded-lg bg-surface p-1.5"><X size={16} /></button>
                     </form>
                   ) : (
-                    <div onClick={(e) => { e.stopPropagation(); setSelected(selected === m.id ? null : m.id); }} className={clsx('whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[15px] leading-snug', mine ? 'rounded-br-md bg-[#ececf1] text-[#141418]' : 'rounded-bl-md bg-surface text-fg')}>
+                    <div onClick={(e) => { e.stopPropagation(); setSelected(selected === m.id ? null : m.id); }} className={clsx('brut-sm whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[15px] font-medium leading-snug text-fg', mine ? 'rounded-br-[5px] bg-accent' : clsx('rounded-bl-[5px]', toneFor(m.authorId)))}>
                       {m.deleted ? <em className="opacity-50">message deleted</em> : m.text}
                       {m.edited && !m.deleted && <span className="ml-1.5 text-[10px] opacity-60">(edited)</span>}
                     </div>
                   )}
                   {!m.deleted && !isEditing && (
-                    <div className={clsx('absolute -top-4 z-10 flex gap-0.5 rounded-lg bg-raised p-0.5 shadow-lg ring-1 ring-line transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
+                    <div className={clsx('brut-sm absolute -top-5 z-10 flex gap-0.5 rounded-lg bg-surface p-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100', mine ? 'right-1' : 'left-1', selected === m.id ? 'opacity-100' : 'opacity-0')}>
                       <IconBtn label="Reply" onClick={() => onReply(m)}><CornerUpLeft size={13} /></IconBtn>
                       <IconBtn label="React" onClick={(e) => { e.stopPropagation(); setTmenu(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 70)); setPicker(picker === m.id ? null : m.id); }}><SmilePlus size={13} /></IconBtn>
                       <IconBtn label="Translate" onClick={(e) => { e.stopPropagation(); setPicker(null); setMenuDir(dirFor(e.currentTarget as HTMLElement, 140)); setTmenu(tmenu === m.id ? null : m.id); }}><Languages size={13} /></IconBtn>
@@ -179,23 +179,23 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
                     </div>
                   )}
                   {tmenu === m.id && (
-                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max flex-col whitespace-nowrap rounded-xl bg-raised p-1 text-[13px] font-medium shadow-xl ring-1 ring-line', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-[7.5rem]' : 'top-full mt-1')} role="menu" aria-label="Translate">
-                      <button role="menuitem" onClick={() => void translate(m.id, 'brainrot')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">🧠 to brainrot</button>
-                      <button role="menuitem" onClick={() => void translate(m.id, 'plain')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">👴 to plain English</button>
-                      {isDry(m.text) && <button role="menuitem" onClick={() => void translate(m.id, 'dry')} className="rounded-lg px-3 py-1.5 text-left hover:bg-surface">🔍 what they really meant</button>}
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('brut pop-in absolute z-20 flex w-max flex-col whitespace-nowrap rounded-xl bg-surface p-1 text-[13px] font-semibold', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-[7.5rem]' : 'top-full mt-1')} role="menu" aria-label="Translate">
+                      <button role="menuitem" onClick={() => void translate(m.id, 'brainrot')} className="rounded-lg px-3 py-1.5 text-left hover:bg-acid">🧠 to brainrot</button>
+                      <button role="menuitem" onClick={() => void translate(m.id, 'plain')} className="rounded-lg px-3 py-1.5 text-left hover:bg-acid">👴 to plain English</button>
+                      {isDry(m.text) && <button role="menuitem" onClick={() => void translate(m.id, 'dry')} className="rounded-lg px-3 py-1.5 text-left hover:bg-acid">🔍 what they really meant</button>}
                     </div>
                   )}
                   {picker === m.id && (
-                    <div onClick={(e) => e.stopPropagation()} className={clsx('pop-in absolute z-20 flex w-max gap-0.5 rounded-xl bg-raised p-1 shadow-xl ring-1 ring-line', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-12' : 'top-full mt-1')} role="menu" aria-label="Pick a reaction">
+                    <div onClick={(e) => e.stopPropagation()} className={clsx('brut pop-in absolute z-20 flex w-max gap-0.5 rounded-xl bg-surface p-1', mine ? 'right-0' : 'left-0', menuDir === 'up' ? '-top-12' : 'top-full mt-1')} role="menu" aria-label="Pick a reaction">
                       {PICKER.map((e) => (
-                        <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-lg px-1.5 py-1 text-lg transition hover:scale-110 hover:bg-surface">{e}</button>
+                        <button key={e} role="menuitem" onClick={() => { onReact(m.id, e); setPicker(null); }} className="rounded-lg px-1.5 py-1 text-lg transition hover:scale-125 hover:bg-acid">{e}</button>
                       ))}
                     </div>
                   )}
                 </div>
                 <Reactions m={m} meId={meId} onReact={onReact} />
                 {translations[m.id] && (
-                  <div className="pop-in mt-1.5 flex max-w-full items-start gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 text-xs ring-1 ring-line" role="note">
+                  <div className="brut-sm pop-in mt-2 flex max-w-full items-start gap-1.5 rounded-lg bg-lemon px-2.5 py-1.5 text-xs font-medium" role="note">
                     <span aria-hidden>{{ brainrot: '🧠', plain: '👴', dry: '🔍' }[translations[m.id]!.mode]}</span>
                     {translations[m.id]!.error ? <span className="text-bad">{translations[m.id]!.error}</span> : <span className="break-words text-fg"><i className="not-italic text-faint">{translations[m.id]!.mode === 'dry' ? 'what they really meant: ' : `${translations[m.id]!.mode}: `}</i>{translations[m.id]!.text}</span>}
                     <button onClick={() => setTranslations(({ [m.id]: _gone, ...rest }) => rest)} aria-label="Dismiss translation" className="ml-1 text-faint hover:text-fg"><X size={12} /></button>
@@ -235,7 +235,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
             scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
             setUnread(0);
           }}
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-raised px-3 py-1.5 text-xs font-semibold shadow-lg ring-1 ring-line-strong"
+          className="brut-sm press absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-acid px-3 py-1.5 text-xs font-bold"
         >
           <ArrowDown size={14} /> {unread} new
         </button>
@@ -246,7 +246,7 @@ export function MessageList({ messages, members, meId, settings, typingIds, thin
 
 function IconBtn({ label, onClick, danger, children }: { label: string; onClick: (e: React.MouseEvent) => void; danger?: boolean; children: React.ReactNode }) {
   return (
-    <button aria-label={label} title={label} onClick={onClick} className={clsx('rounded-md p-1.5 text-muted transition-colors hover:bg-surface', danger ? 'hover:text-bad' : 'hover:text-fg')}>
+    <button aria-label={label} title={label} onClick={onClick} className={clsx('rounded-md p-1.5 text-fg transition-colors', danger ? 'hover:bg-bad hover:text-white' : 'hover:bg-acid')}>
       {children}
     </button>
   );
@@ -259,42 +259,55 @@ function Reactions({ m, meId, onReact }: { m: ChatMessage; meId?: string; onReac
   return (
     <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
       {m.aiReactions.map((e) => (
-        <span key={`ai-${e}`} title="the AI reacted" className="pop-in rounded-full bg-raised px-1.5 py-0.5 text-sm ring-1 ring-accent/40">{e}</span>
+        <span key={`ai-${e}`} title="the AI reacted" className="pop-in rounded-full border-[1.5px] border-line bg-acid px-1.5 py-px text-sm">{e}</span>
       ))}
       {user.map(([e, ids]) => (
-        <button key={e} onClick={() => onReact(m.id, e)} aria-pressed={!!meId && ids.includes(meId)} className={clsx('pop-in flex items-center gap-1 rounded-full px-1.5 py-0.5 text-sm ring-1 transition-colors', meId && ids.includes(meId) ? 'bg-accent/12 ring-accent/50' : 'bg-raised ring-line hover:ring-line-strong')}>
-          {e}<span className="font-mono text-[11px] text-muted">{ids.length}</span>
+        <button key={e} onClick={() => onReact(m.id, e)} aria-pressed={!!meId && ids.includes(meId)} className={clsx('pop-in flex items-center gap-1 rounded-full border-[1.5px] border-line px-1.5 py-px text-sm transition-colors', meId && ids.includes(meId) ? 'bg-accent' : 'bg-surface hover:bg-raised')}>
+          {e}<span className="font-mono text-[11px] font-bold">{ids.length}</span>
         </button>
       ))}
     </div>
   );
 }
 
-function AiCard({ m, onReact, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; meId?: string }) {
+/** what a trigger stamp would say; plain conversation (chime-ins, answers) gets none, so it reads like a person talking */
+const QUIET_TRIGGERS = new Set(['chime', 'mention']);
+
+/** the AI's line: a member of the chat, with an avatar and a bubble. Replying to it is talking to it. */
+function AiCard({ m, onReact, onReply, meId }: { m: ChatMessage; latest: boolean; onReact: (id: string, emoji: string) => void; onReply: (m: ChatMessage) => void; meId?: string }) {
   const persona = PERSONAS[m.persona ?? 'gremlin'];
-  const sticker = m.trigger ? STICKER[m.trigger] : undefined;
+  const sticker = m.trigger && !QUIET_TRIGGERS.has(m.trigger) ? STICKER[m.trigger] : undefined;
   const gif = m.gif && isGiphy(m.gif) ? m.gif : undefined;
-  const rule = m.side === 'ollama' ? 'bg-ollama' : 'bg-accent';
-  const tone = m.side === 'ollama' ? 'text-ollama' : 'text-accent';
   const via = m.model && m.model !== 'canned' ? MODEL_LABEL[m.model] ?? m.model : undefined;
+  const stamp = m.trigger && !QUIET_TRIGGERS.has(m.trigger) ? TRIGGER_LABEL[m.trigger] ?? m.trigger : undefined;
   return (
-    <div className="pop-in my-3 flex gap-3 pr-1" data-ai-line>
-      <span className={clsx('w-[3px] shrink-0 rounded-full', rule)} aria-hidden />
-      <div className="min-w-0 flex-1 py-0.5">
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs" title={via ? `written by ${via}` : undefined} data-ai-label>
-          <span aria-hidden>{persona.emoji}</span>
-          <span className={clsx('font-semibold', tone)}>{persona.label}</span>
-          {m.trigger && <span className="text-faint">· {TRIGGER_LABEL[m.trigger] ?? m.trigger}</span>}
+    <div className="group pop-in flex gap-2 pt-2" data-ai-line>
+      <span className={clsx('grid size-9 shrink-0 place-items-center self-start rounded-xl border-2 border-line text-lg shadow-[2px_2px_0_var(--color-line)]', m.side === 'ollama' ? 'bg-sky' : 'bg-acid')} aria-hidden>{persona.emoji}</span>
+      <div className="flex min-w-0 max-w-[80%] flex-col items-start">
+        <div className="mb-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px]" title={via ? `written by ${via}` : undefined} data-ai-label>
+          <span className="font-extrabold">{persona.label}</span>
+          <span className="rounded border-[1.5px] border-line bg-fg px-1 text-[9px] font-extrabold leading-[14px] text-acid">AI</span>
+          {stamp && <span className="text-[11px] font-semibold text-muted">· {stamp}</span>}
           {m.side && <Chip tone={m.side}>{SIDE_LABEL[m.side]}</Chip>}
+          <span className="text-[11px] text-faint">{clockTime(m.at)}</span>
         </div>
-        <p className="mt-1 break-words text-[15px] font-medium leading-snug text-fg">{m.text}</p>
-        {gif && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={gif} alt="reaction gif" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="mt-2 max-h-44 rounded-xl ring-1 ring-line" />
-        )}
-        <div className="mt-1"><Reactions m={m} meId={meId} onReact={onReact} /></div>
+        <div className="relative">
+          <div className={clsx('brut-sm break-words rounded-[18px] rounded-tl-[5px] px-3.5 py-2 text-[15px] font-semibold leading-snug', m.side === 'ollama' ? 'bg-sky' : 'bg-acid')}>
+            {m.text}
+            {gif && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={gif} alt="reaction gif" loading="lazy" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="mt-2 max-h-48 rounded-xl border-2 border-line" />
+            )}
+          </div>
+          {sticker && <span className="wiggle pointer-events-none absolute -right-3 -top-4 text-2xl sm:-right-7 sm:-top-3 sm:text-3xl drop-shadow-[2px_2px_0_var(--color-line)] [--r:-10deg]" aria-hidden>{sticker}</span>}
+        </div>
+        <div className="mt-1 flex items-center gap-2">
+          <Reactions m={m} meId={meId} onReact={onReact} />
+          <button onClick={() => onReply(m)} aria-label="Reply to the AI" className="rounded-md px-1 text-[11px] font-bold text-muted hover:bg-raised hover:text-fg">
+            <CornerUpLeft size={11} className="mr-0.5 inline" />reply
+          </button>
+        </div>
       </div>
-      {sticker && <span className="shrink-0 -rotate-6 self-start text-3xl leading-none" aria-hidden>{sticker}</span>}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function ProfileDialog({ member, onClose }: { member: Member | null; onCl
     <AnimatePresence>
       {member && s && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] grid place-items-end bg-black/70 sm:place-items-center sm:p-6" role="dialog" aria-modal aria-label={`${member.name} profile`}>
-          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: 0.18 }} onClick={(e) => e.stopPropagation()} className="relative w-full max-w-sm rounded-t-2xl border border-line bg-panel p-5 sm:rounded-2xl">
+          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ duration: 0.18 }} onClick={(e) => e.stopPropagation()} className="brut-lg relative w-full max-w-sm rounded-t-3xl bg-surface p-5 sm:rounded-3xl">
             <button onClick={onClose} aria-label="Close" className="absolute right-3 top-3 rounded-lg p-1.5 text-faint hover:bg-surface hover:text-fg"><X size={18} /></button>
             <div className="flex items-center gap-4">
               <Avatar type={member.avatar} size={64} paused={false} />
@@ -39,7 +39,7 @@ export function ProfileDialog({ member, onClose }: { member: Member | null; onCl
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-3 rounded-xl bg-surface p-3 ring-1 ring-line">
+            <div className="brut-sm mt-5 flex items-center gap-3 rounded-xl bg-acid p-3">
               <span className="text-3xl" aria-hidden>{CREATURES[s.creature].emoji}</span>
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-semibold text-faint">Current form</div>

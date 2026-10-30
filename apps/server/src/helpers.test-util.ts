@@ -60,6 +60,8 @@ export function setup() {
   room.settings.timings = { ...DEFAULT_TIMINGS, commentCooldownMs: 0 };
   // most tests check what a single message triggers; the speaking budget has its own tests (engine-e)
   room.settings.aiEvery = 0;
+  // chime-ins would answer every plain test message; they have their own test (engine-f)
+  room.settings.chime = false;
   const add = (id: string, name: string) => {
     engine.join(room, { code: 'TEST', memberId: id, name, avatar: 'cat' }, `s-${id}`);
     return id;

@@ -28,12 +28,12 @@ export class LlmCommentator implements CommentWriter {
   constructor(private readonly router: LlmRouter) {}
 
   async write(ctx: CommentContext): Promise<Line | null> {
-    return toLine(await this.router.complete(buildMessages(ctx), ctx.prefer));
+    return toLine(await this.router.complete(buildMessages(ctx), ctx.prefer), ctx.settings.explicit);
   }
 
   /** one sanitized line from a free-form prompt (AI-vs-AI duel banter) */
-  async say(p: { system: string; user: string; prefer?: 'groq' | 'ollama' }): Promise<Line | null> {
-    return toLine(await this.router.complete([{ role: 'system', content: p.system }, { role: 'user', content: p.user }], p.prefer));
+  async say(p: { system: string; user: string; prefer?: 'groq' | 'ollama'; explicit?: boolean }): Promise<Line | null> {
+    return toLine(await this.router.complete([{ role: 'system', content: p.system }, { role: 'user', content: p.user }], p.prefer), p.explicit);
   }
 
   /** free-form generation for judges, translators, captions, recaps. Anything touching off-limits topics is dropped. */
@@ -45,9 +45,9 @@ export class LlmCommentator implements CommentWriter {
 }
 
 /** model output -> a safe line, plus the GIF search it asked for ("[gif: ...]"), if any */
-function toLine(r: { text: string; provider: string } | null): Line | null {
+function toLine(r: { text: string; provider: string } | null, explicit = false): Line | null {
   if (!r) return null;
   const { text: raw, gif } = extractGif(r.text);
-  const text = sanitizeLine(raw);
+  const text = sanitizeLine(raw, explicit);
   return text ? { text, model: r.provider, ...(gif ? { gif } : {}) } : null;
 }
